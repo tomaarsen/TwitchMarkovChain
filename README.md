@@ -1,5 +1,5 @@
 # TwitchMarkovChain
-Twitch bot for generating messages based on what it learned from chat 
+Twitch Bot for generating messages based on what it learned from chat 
 
 ---
 # Explanation
