@@ -60,7 +60,8 @@ Note also that this bot creates a folder called "Logging" parallel to the folder
 
 * [TwitchGoogleTranslate](https://github.com/CubieDev/TwitchGoogleTranslate)
 * [TwitchCubieBot](https://github.com/CubieDev/TwitchCubieBot)
+* [TwitchDeathCounter](https://github.com/CubieDev/TwitchDeathCounter)
 * [TwitchPickUser](https://github.com/CubieDev/TwitchPickUser)
-* [TwitchPackCounter](https://github.com/CubieDev/TwitchPackCounter)
 * [TwitchSaveMessages](https://github.com/CubieDev/TwitchSaveMessages)
+* [TwitchPackCounter](https://github.com/CubieDev/TwitchPackCounter) (Streamer specific bot)
 * [TwitchDialCheck](https://github.com/CubieDev/TwitchDialCheck) (Streamer specific bot)
