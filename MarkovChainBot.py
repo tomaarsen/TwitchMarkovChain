@@ -60,7 +60,6 @@ class Settings:
                 raise ValueError("Please fix your settings.txt file that was just generated.")
 
 class Database:
-    # Using sqlite for simplicity, even though it doesn't store my dict in a convenient matter.
     def __init__(self):
         self.create_db()
     
@@ -133,9 +132,6 @@ class MarkovChain:
         self.auth = auth
         self.denied_users = [user.lower() for user in denied_users] + [self.nick.lower()]
         self.key_length = key_length
-
-    def set_dict(self, data):
-        self.dict = data
 
     def message_handler(self, m):
         try:
