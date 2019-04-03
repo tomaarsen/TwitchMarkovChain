@@ -60,7 +60,6 @@ class Settings:
                 raise ValueError("Please fix your settings.txt file that was just generated.")
 
 class Database:
-    # Using sqlite for simplicity, even though it doesn't store my dict in a convenient matter.
     def __init__(self):
         self.create_db()
     
