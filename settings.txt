@@ -1,0 +1,14 @@
+{
+    "Host": "irc.chat.twitch.tv",
+    "Port": 6667,
+    "Channel": "#<channel>",
+    "Nickname": "<name>",
+    "Authentication": "oauth:<auth>",
+    "DeniedUsers": [
+        "StreamElements",
+        "Nightbot",
+        "Moobot",
+        "Marbiebot"
+    ],
+    "KeyLength": 2
+}
