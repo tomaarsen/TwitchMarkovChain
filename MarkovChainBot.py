@@ -1,7 +1,7 @@
 
 from TwitchWebsocket import TwitchWebsocket
 from nltk.tokenize import sent_tokenize
-import json, random, logging, os, sqlite3
+import json, random, logging, os, sqlite3, time
 
 class Logging:
     def __init__(self):
@@ -42,6 +42,7 @@ class Settings:
                                 data['Authentication'],
                                 data['DeniedUsers'],
                                 data["BannedWords"],
+                                data["Cooldown"],
                                 data['KeyLength'])
                 logging.debug("Settings loaded into Bot.")
         except ValueError:
@@ -60,6 +61,7 @@ class Settings:
                                     "Authentication": "oauth:<auth>",
                                     "DeniedUsers": ["StreamElements", "Nightbot", "Moobot", "Marbiebot"],
                                     "BannedWords": ["<START>", "<END>"],
+                                    "Cooldown": 20,
                                     "KeyLength": 2
                                 }
                 f.write(json.dumps(standard_dict, indent=4, separators=(',', ': ')))
@@ -167,7 +169,9 @@ class MarkovChain:
         self.auth = None
         self.denied_users = None
         self.banned_words = None
-        self.key_length = None
+        self.cooldown = 20
+        self.key_length = 2
+        self.prev_message_t = 0
         
         # Fill previously initialised variables with data from the settings.txt file
         Settings(self)
@@ -177,7 +181,7 @@ class MarkovChain:
         self.ws.login(self.nick, self.auth)
         self.ws.join_channel(self.chan)
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, banned_words, key_length):
+    def set_settings(self, host, port, chan, nick, auth, denied_users, banned_words, cooldown, key_length):
         self.host = host
         self.port = port
         self.chan = chan
@@ -185,6 +189,7 @@ class MarkovChain:
         self.auth = auth
         self.denied_users = [user.lower() for user in denied_users] + [self.nick.lower()]
         self.banned_words = [word.lower() for word in banned_words]
+        self.cooldown = cooldown
         self.key_length = key_length
 
     def message_handler(self, m):
@@ -204,13 +209,18 @@ class MarkovChain:
                 if "ACTION" in m.message:
                     print(m)
 
-                if m.message.startswith("!generate"):
+                if m.message.startswith("!generate") and self.prev_message_t + self.cooldown < time.time():
                     # Get params
                     params = m.message.split(" ")[1:]
                     # Generate an actual sentence
                     sentence = self.generate(params)
                     logging.info(sentence)
                     self.ws.send_message(sentence)
+                    
+
+                # Don't store commands
+                elif m.message.startswith(("!", "/", ".")):
+                    return
                     
                 else:
                     if self.containsBannedWord(m.message):
@@ -251,15 +261,22 @@ class MarkovChain:
             
     def generate(self, params=[]):
 
+        if len(params) > 0:
+            if params[0].startswith(("!", "/", ".")):
+                return "You can't make me do commands, you madman!"
+
         if len(params) > 1:
-            key = params[-2:]
+            key = params[-self.key_length:]
             # Copy the entire params for the sentence
             sentence = params.copy()
         elif len(params) == 1:
             key = self.db.get_next_single(params[0])
             if key == None:
                 # If there is no word to go after our param word, then just generate a sentence without parameters
-                return self.generate()
+                #return self.generate()
+
+                # Return a message that this word hasn't been learned yet
+                return f"I haven't yet extracted \"{params[0]}\" from chat."
             # Copy this for the sentence
             sentence = key.copy()
         else:
@@ -287,7 +304,11 @@ class MarkovChain:
         # Then the params did not result in an actual sentence
         # If so, restart without params
         if len(params) > 0 and params == sentence:
-            return self.generate()
+            #return self.generate()
+            return "I haven't yet learned what to do with \"" + " ".join(params[-self.key_length:]) + "\""
+
+        # Reset cooldown if a message was actually generated
+        self.prev_message_t = time.time()
 
         return " ".join(sentence)
 

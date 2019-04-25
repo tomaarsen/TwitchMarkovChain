@@ -14,5 +14,6 @@
         "<START>",
         "<END>"
     ],
+    "Cooldown": 20,
     "KeyLength": 2
 }
