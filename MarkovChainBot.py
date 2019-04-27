@@ -55,9 +55,6 @@ class MarkovChain:
                 if m.user.lower() in self.denied_users:
                     return
                 
-                if "ACTION" in m.message:
-                    print(m)
-
                 if m.message.startswith("!generate"):
                     if self.prev_message_t + self.cooldown < time.time():
                         # Get params
@@ -69,8 +66,7 @@ class MarkovChain:
                     else:
                         logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - time.time():0.2f}s remaining")
                     
-                # Don't store commands
-                elif m.message.startswith(("!", "/", ".")):
+                elif self.checkIfCommand(m.message):
                     return
                     
                 else:
@@ -113,7 +109,7 @@ class MarkovChain:
     def generate(self, params=[]):
 
         if len(params) > 0:
-            if params[0].startswith(("!", "/", ".")):
+            if self.checkIfCommand(params[0]):
                 return "You can't make me do commands, you madman!"
 
         if len(params) > 1:
@@ -171,6 +167,10 @@ class MarkovChain:
             if banned in low_mes:
                 return True
         return False
+    
+    def checkIfCommand(self, message):
+        # Don't store commands, except /me
+        return message.startswith(("!", "/", ".")) and not message.startswith("/me")
 
 if __name__ == "__main__":
     MarkovChain()
