@@ -52,11 +52,11 @@ class Database:
         # Potentially interesting: Remove case sensitivity for keys to improve average choice
         #arg = [arg.lower() if index < (len(args[0]) - 1) else arg for index, arg in enumerate(args[0])]
 
-        # Only if not all arguments are identical will the values be entered into the system.
-        # This prevents: LUL + LUL -> LUL
-        # Which could be a cause of recursion.
+        # For all cases where the arguments are all the same, we want to check if the odds of recursion is < 50% 
+        # And if it is, we can add the arguments.
         if self.checkEqual(args[0]):
-            return
+            if self.checkOdds(args[0][0]):
+                return
 
         # Add 1 to the count for the specific out. However, only if this out already exists in the db.
         self.execute("UPDATE MarkovGrammar SET count = count+1 WHERE input1 = ? AND input2 = ? AND output1 = ?", args[0])
@@ -64,10 +64,23 @@ class Database:
         self.execute("INSERT OR IGNORE INTO MarkovGrammar(input1, input2, output1, count) SELECT ?, ?, ?, 1;", args[0])
     
     def checkEqual(self, l):
+        # Check if a list contains of items that are all identical
         return not l or l.count(l[0]) == len(l)
 
+    def checkOdds(self, arg):
+        # Check if the odds of recursion are larger than 50%
+        total = self.execute("SELECT SUM(count) FROM MarkovGrammar WHERE input1=? AND input2=?;", (arg, arg), fetch=True)
+        recursion_case = self.execute("SELECT count FROM MarkovGrammar WHERE input1=? AND input2=? AND output1=?;", (arg, arg, arg), fetch=True)
+        # If total is empty, then we don't want to add a recursive case 
+        if len(total) == 0:
+            return True
+        # If recursion_case is empty but total isn't, then we do want to add a recursive case
+        if len(recursion_case) == 0:
+            return False
+        # Otherwise return if recursion_case is more or equal to 50% of all cases
+        return recursion_case[0][0] / total[0][0] >= 0.5
+
     def get_next(self, *args):
-        #return self.execute("SELECT word3 FROM MarkovChain WHERE word1=? AND word2=? ORDER BY RANDOM() LIMIT 1;", args[0], fetch=True)
         # Get all items
         data = self.execute("SELECT output1, count FROM MarkovGrammar where input1=? AND input2=?;", args[0], fetch=True)
         # Add each item "count" times
@@ -88,8 +101,7 @@ class Database:
         return [inp] + [random.choice(start_list)]
 
     def get_start(self):
-        #return list(self.execute("SELECT word2, word3 FROM MarkovChain WHERE word1='<START>' ORDER BY RANDOM() LIMIT 1;", fetch=True)[0])
-        #return list(self.execute("SELECT output1, output2 FROM MarkovStart ORDER BY RANDOM() LIMIT 1;", fetch=True)[0])
+        # TODO Prevent having to ask for all items
         # Get all items
         data = self.execute("SELECT * FROM MarkovStart;", fetch=True)
         # Add each item "count" times

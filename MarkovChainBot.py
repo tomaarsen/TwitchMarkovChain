@@ -1,7 +1,7 @@
 
 from TwitchWebsocket import TwitchWebsocket
 from nltk.tokenize import sent_tokenize
-import json, random, logging, os, sqlite3, time, sys
+import time, logging
 
 from Log import Log
 Log(__file__)
