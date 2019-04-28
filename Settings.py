@@ -8,7 +8,7 @@ class Settings:
         logger.debug("Loading settings.txt file...")
         try:
             # Try to load the file using json.
-            # And pass the data to the GoogleTranslate class instance if this succeeds.
+            # And pass the data to the Bot class instance if this succeeds.
             with open("settings.txt", "r") as f:
                 settings = f.read()
                 data = json.loads(settings)

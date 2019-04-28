@@ -34,6 +34,7 @@ class MarkovChain:
                                   callback=self.message_handler,
                                   capability=None,
                                   live=True)
+        self.ws.start_bot()
 
     def set_settings(self, host, port, chan, nick, auth, denied_users, banned_words, cooldown, key_length):
         self.host = host
