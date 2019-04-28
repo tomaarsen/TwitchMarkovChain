@@ -26,9 +26,14 @@ class MarkovChain:
         Settings(self)
         self.db = Database(self.chan)
 
-        self.ws = TwitchWebsocket(self.host, self.port, self.message_handler, live=True)
-        self.ws.login(self.nick, self.auth)
-        self.ws.join_channel(self.chan)
+        self.ws = TwitchWebsocket(host=self.host, 
+                                  port=self.port,
+                                  chan=self.chan,
+                                  nick=self.nick,
+                                  auth=self.auth,
+                                  callback=self.message_handler,
+                                  capability=None,
+                                  live=True)
 
     def set_settings(self, host, port, chan, nick, auth, denied_users, banned_words, cooldown, key_length):
         self.host = host
@@ -107,6 +112,8 @@ class MarkovChain:
             logging.exception(e)
             
     def generate(self, params=[]):
+
+        #TODO If Params are sent, test Start first
 
         if len(params) > 0:
             if self.checkIfCommand(params[0]):
