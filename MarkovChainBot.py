@@ -190,8 +190,8 @@ Make keys case insensitive. eg "it" and "It" would get grouped.
 SQL to get the average amount of choices. The higher, the more unique sentences it will create.
 SELECT AVG(choices) FROM
 (
-	SELECT COUNT(word3) as choices
-	FROM MarkovChain
-	GROUP BY word1, word2
+	SELECT COUNT(output1) as choices
+	FROM MarkovGrammar
+	GROUP BY input1, input2
 ) myData
 """
