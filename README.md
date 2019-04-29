@@ -3,7 +3,89 @@ Twitch Bot for generating messages based on what it learned from chat
 
 ---
 # Explanation
+
 When the bot has started, it will start listening to chat messages in the channel listed in the settings.txt file. Any chat message not sent by a denied user will be learned from. Whenever someone then requests a message to be generated, a [Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) will be used with the learned data to generate a sentence. <b> Note that the bot is unaware of the meaning of any of its inputs and outputs. This means it can use bad language if it was taught to use bad language by people in chat. Use at your own risk. </b>
+
+---
+# How it works
+
+### Sentence Parsing
+To explain how the bot works, I will provide an example situation with two messages. The messages are:
+<pre><b>Curly fries are the worst kind of fries
+Loud people are the reason I don't go to the movies anymore
+</b></pre>
+Let's start with the first sentence and parse it like the bot will, in sections of keyLength(which is 2) + 1 = 3 words.
+<pre><b>
+ Curly fries are the worst kind of fries</b>
+[Curly fries:are]
+      [fries are:the]
+            [are the:worst]
+                [the worst:kind]
+                    [worst kind:of]
+                          [kind of:fries]
+</pre>
+For each of these sets of three words, the last word is considered the output, while all words before it are considered inputs.
+These words are then turned into a [Context Free Grammar](https://en.wikipedia.org/wiki/Context-free_grammar):
+<pre>
+"Curly fries" -> "are"
+"fries are"   -> "the"
+"are the"     -> "worst"
+"the worst"   -> "kind"
+"worst kind"  -> "of"
+"kind of"     -> "fries"
+</pre>
+You could see this as: if given input "the worst", we will output "kind".<br>
+In order for this to know where sentences begin, we also add the first keyLength (2) words to a seperate Database, where a list of possible starts of sentences reside.<br>
+
+This exact same process is applied to the second sentence as well. After doing so, the resulting grammar (and our database) looks like:
+<pre>
+"Curly fries" -> "are"
+"fries are"   -> "the"
+"are the"     -> <b>"worst" | "reason"</b>
+"the worst"   -> "kind"
+"worst kind"  -> "of"
+"kind of"     -> "fries"
+"Loud people" -> "are"
+"people are"  -> "the"
+"the reason"  -> "I"
+"reason I"    -> "don't"
+"I don't"     -> "go"
+"don't go"    -> "to"
+"go to"       -> "the"
+"to the"      -> "movies"
+"the movies"  -> "anymore"
+</pre>
+and in the database for starts of sentences:
+<pre>
+"Curly fries"
+"Loud people"
+</pre>
+Note that the | could be seen as "or". In the case of the bold text above, it could be read as: if the given input is "are the", then the output is "worst" or "reason".
+
+### Generation
+
+When a message is generated with `!generate`, a random start of a sentence is picked from the database of starts of sentences. In our example the randomly picked start is "Curly fries".
+
+Now, in a loop:<br>
+    the output for the input is generated via the grammar, <br>
+    and the input is shifted to remove the first word and add the output to the input.<br>
+A more programmatic example of this would be this:
+```python
+# This is Pseudo-code meant for anyone to understand how this project works.
+# Not code you should necessarily adopt.
+input = "Curly fries" # Start of sentence
+print(input)
+loop start
+    output = GetOutputFromInput(input) # Generated via the grammar
+    print(output)
+    input = ShiftInput(input, output) # Remove the first word, add the new output.
+    #                 For the first iteration, this new input becomes "fries are".
+```
+
+Often times an input has multiple possible outputs, as we can see in the bold part of the previous grammar. In these events, learned information about multiple messages can be merged into one message. For instance, in our example, potential outputs are
+<pre><b>Curly fries are the reason I don't go to the movies anymore</b></pre>
+or
+<pre><b>Loud people are the worst kind of fries</b></pre>
 
 ---
 
