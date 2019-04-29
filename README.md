@@ -95,7 +95,7 @@ or
 Command:
 <pre><b>!generate</b></pre>
 Result (for example):
-<pre><b>that little thing is pinky</b></pre>
+<pre><b>Curly fries are the reason I don't go to the movies anymore</b></pre>
 Everyone can use it.<br>
 
 Command:
