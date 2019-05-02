@@ -154,8 +154,12 @@ I got my real OAuth token from https://twitchapps.com/tmi/.
 ---
 
 # Requirements
-* nltk
-* json
+* Python 3+ (Only tested on 3.7)
+
+Download Python online.
+
+* nltk module
+* json module
 
 Install these using `pip install ...`
 
