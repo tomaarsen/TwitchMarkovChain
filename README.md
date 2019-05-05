@@ -154,7 +154,7 @@ I got my real OAuth token from https://twitchapps.com/tmi/.
 ---
 
 # Requirements
-* Python 3+ (Only tested on 3.7)
+* Python 3+ (Only tested on 3.6)
 
 Download Python online.
 
