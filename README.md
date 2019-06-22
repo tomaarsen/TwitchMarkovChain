@@ -175,7 +175,8 @@ This repository can be seen as an implementation using this wrapper.
 # Other Twitch Bots
 
 * [TwitchGoogleTranslate](https://github.com/CubieDev/TwitchGoogleTranslate)
-* [TwitchRhymeBot](https://github.com/CubieDev/TwitchRhymeBot) (Expands this bot)
+* [TwitchRhymeBot](https://github.com/CubieDev/TwitchRhymeBot)
+* [TwitchCubieBotGUI](https://github.com/CubieDev/TwitchCubieBotGUI)
 * [TwitchCubieBot](https://github.com/CubieDev/TwitchCubieBot)
 * [TwitchDeathCounter](https://github.com/CubieDev/TwitchDeathCounter)
 * [TwitchSuggestDinner](https://github.com/CubieDev/TwitchSuggestDinner)
