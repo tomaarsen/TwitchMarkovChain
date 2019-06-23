@@ -25,6 +25,13 @@ class Database:
         )
         """
         self.create_db(sql)
+        sql = """
+        CREATE TABLE IF NOT EXISTS WhisperIgnore (
+            username TEXT,
+            PRIMARY KEY (username)
+        )
+        """
+        self.create_db(sql)
     
     def create_db(self, sql):
         logger.debug("Creating Database...")
@@ -42,6 +49,15 @@ class Database:
             if fetch:
                 return cur.fetchall()
     
+    def add_whisper_ignore(self, username):
+        self.execute("INSERT OR IGNORE INTO WhisperIgnore(username) SELECT ?", (username,))
+    
+    def check_whisper_ignore(self, username):
+        return self.execute("SELECT username FROM WhisperIgnore WHERE username = ?;", (username,), fetch=True)
+
+    def remove_whisper_ignore(self, username):
+        self.execute("DELETE FROM WhisperIgnore WHERE username = ?", (username,))
+
     def add_start(self, out):
         # Add 1 to the count for the specific out. However, only if this out already exists in the db.
         self.execute("UPDATE MarkovStart SET count = count+1 WHERE output1 = ? AND output2 = ?", (out[0], out[1]))

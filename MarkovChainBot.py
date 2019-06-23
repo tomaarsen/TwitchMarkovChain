@@ -32,7 +32,7 @@ class MarkovChain:
                                   nick=self.nick,
                                   auth=self.auth,
                                   callback=self.message_handler,
-                                  capability=None,
+                                  capability="commands",
                                   live=True)
         self.ws.start_bot()
 
@@ -70,8 +70,10 @@ class MarkovChain:
                         logging.info(sentence)
                         self.ws.send_message(sentence)
                     else:
+                        if not self.db.check_whisper_ignore(m.user):
+                            self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - time.time():0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
                         logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - time.time():0.2f}s remaining")
-                    
+
                 elif self.checkIfCommand(m.message):
                     return
                     
@@ -108,6 +110,16 @@ class MarkovChain:
                             key.append(word)
                         # Add <END> at the end of the sentence
                         self.db.add_rule(key + ["<END>"])
+                        
+            elif m.type == "WHISPER":
+                if m.message == "!nopm":
+                    logging.debug(f"Adding {m.user} to Do Not Whisper.")
+                    self.db.add_whisper_ignore(m.user)
+                    self.ws.send_whisper(m.user, "You will no longer be sent whispers. Type !yespm to reenable. ")
+                elif m.message == "!yespm":
+                    logging.debug(f"Removing {m.user} from Do Not Whisper.")
+                    self.db.remove_whisper_ignore(m.user)
+                    self.ws.send_whisper(m.user, "You will again be sent whispers. Type !nopm to disable again. ")
 
         except Exception as e:
             logging.exception(e)
