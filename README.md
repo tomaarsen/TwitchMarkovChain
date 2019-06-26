@@ -159,9 +159,8 @@ I got my real OAuth token from https://twitchapps.com/tmi/.
 Download Python online.
 
 * nltk module
-* json module
 
-Install these using `pip install ...`
+Install this using `pip install nltk`
 
 * TwitchWebsocket
 
