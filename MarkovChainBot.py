@@ -150,8 +150,6 @@ class MarkovChain:
 
                     # Return a message that this word hasn't been learned yet
                     return f"I haven't yet extracted \"{params[0]}\" from chat."
-            else:
-                print(f"Got key {key} from Start!")
             # Copy this for the sentence
             sentence = key.copy()
         else:
