@@ -99,22 +99,32 @@ class Database:
     def get_next(self, *args):
         # Get all items
         data = self.execute("SELECT output1, count FROM MarkovGrammar where input1=? AND input2=?;", args[0], fetch=True)
-        # Add each item "count" times
-        start_list = [tup[0] for tup in data for _ in range(tup[-1])]
-        # Pick a random starting key from this weighted list
-        if len(start_list) == 0:
+        # Return a word picked from the data, using count as a weighting factor
+        if len(data) == 0:
             return None
-        return random.choice(start_list)
+        return self.pick_word(data)
     
     def get_next_single(self, inp):
         # Get all items
         data = self.execute("SELECT input2, count FROM MarkovGrammar where input1=?;", (inp,), fetch=True)
+        # Return a word picked from the data, using count as a weighting factor
+        if len(data) == 0:
+            return None
+        return [inp] + [self.pick_word(data)]
+
+    def get_next_single_start(self, inp):
+        # Get all items
+        data = self.execute("SELECT output2, count FROM MarkovStart where output1=?;", (inp,), fetch=True)
+        # Return a word picked from the data, using count as a weighting factor
+        if len(data) == 0:
+            return None
+        return [inp] + [self.pick_word(data)]
+
+    def pick_word(self, data):
         # Add each item "count" times
         start_list = [tup[0] for tup in data for _ in range(tup[-1])]
         # Pick a random starting key from this weighted list
-        if len(start_list) == 0:
-            return None
-        return [inp] + [random.choice(start_list)]
+        return random.choice(start_list)
 
     def get_start(self):
         # TODO Prevent having to ask for all items

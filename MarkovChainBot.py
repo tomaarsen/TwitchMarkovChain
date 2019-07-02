@@ -74,7 +74,7 @@ class MarkovChain:
                             self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - time.time():0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
                         logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - time.time():0.2f}s remaining")
 
-                elif self.checkIfCommand(m.message):
+                elif self.check_if_command(m.message):
                     return
                     
                 else:
@@ -129,21 +129,29 @@ class MarkovChain:
         #TODO If Params are sent, test Start first
 
         if len(params) > 0:
-            if self.checkIfCommand(params[0]):
+            if self.check_if_command(params[0]):
                 return "You can't make me do commands, you madman!"
 
         if len(params) > 1:
             key = params[-self.key_length:]
             # Copy the entire params for the sentence
             sentence = params.copy()
-        elif len(params) == 1:
-            key = self.db.get_next_single(params[0])
-            if key == None:
-                # If there is no word to go after our param word, then just generate a sentence without parameters
-                #return self.generate()
 
-                # Return a message that this word hasn't been learned yet
-                return f"I haven't yet extracted \"{params[0]}\" from chat."
+        elif len(params) == 1:
+            # First we try to find if this word was once used as the first word in a sentence:
+            key = self.db.get_next_single_start(params[0])
+            if key == None:
+                # If this failed, we try to find the next word in the grammar as a whole
+                key = self.db.get_next_single(params[0])
+                if key == None:
+                    # If there is no word to go after our param word, then just generate a sentence without parameters
+                    # We don't do this anymore
+                    #return self.generate()
+
+                    # Return a message that this word hasn't been learned yet
+                    return f"I haven't yet extracted \"{params[0]}\" from chat."
+            else:
+                print(f"Got key {key} from Start!")
             # Copy this for the sentence
             sentence = key.copy()
         else:
@@ -188,7 +196,7 @@ class MarkovChain:
                 return True
         return False
     
-    def checkIfCommand(self, message):
+    def check_if_command(self, message):
         # Don't store commands, except /me
         return message.startswith(("!", "/", ".")) and not message.startswith("/me")
 
