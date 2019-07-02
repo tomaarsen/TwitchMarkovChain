@@ -181,6 +181,7 @@ This repository can be seen as an implementation using this wrapper.
 * [TwitchSuggestDinner](https://github.com/CubieDev/TwitchSuggestDinner)
 * [TwitchPickUser](https://github.com/CubieDev/TwitchPickUser)
 * [TwitchSaveMessages](https://github.com/CubieDev/TwitchSaveMessages)
+* [TwitchMMLevelPickerGUI](https://github.com/CubieDev/TwitchMMLevelPickerGUI) (Mario Maker 2 specific bot)
 * [TwitchPackCounter](https://github.com/CubieDev/TwitchPackCounter) (Streamer specific bot)
 * [TwitchDialCheck](https://github.com/CubieDev/TwitchDialCheck) (Streamer specific bot)
 * [TwitchSendMessage](https://github.com/CubieDev/TwitchSendMessage) (Not designed for non-programmers)
