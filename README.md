@@ -25,7 +25,7 @@ Let's start with the first sentence and parse it like the bot will, in sections 
                           [kind of:fries]
 </pre>
 For each of these sets of three words, the last word is considered the output, while all words before it are considered inputs.
-These words are then turned into a [Context Free Grammar](https://en.wikipedia.org/wiki/Context-free_grammar):
+These words are then turned into a variation of a [Context Free Grammar](https://en.wikipedia.org/wiki/Context-free_grammar):
 <pre>
 "Curly fries" -> "are"
 "fries are"   -> "the"
