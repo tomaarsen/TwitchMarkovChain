@@ -15,5 +15,6 @@
         "<END>"
     ],
     "Cooldown": 20,
-    "KeyLength": 2
+    "KeyLength": 2,
+    "MaxSentenceWordAmount": 25
 }

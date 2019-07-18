@@ -6,30 +6,34 @@ class Database:
     def __init__(self, channel):
         self.db_name = f"MarkovChain_{channel.replace('#', '').lower()}.db"
 
+        # TODO: Punctuation insensitivity.
+        # My ideas for such an implementation have increased the generation time by ~5x. 
+        # This was not worth it for me. I may revisit this at some point.
+
         sql = """
         CREATE TABLE IF NOT EXISTS MarkovStart (
-            output1 TEXT,
-            output2 TEXT,
-            count INTEGER,
-            PRIMARY KEY (output1, output2)
-        )
+            word1 TEXT COLLATE NOCASE, 
+            word2 TEXT COLLATE NOCASE, 
+            occurances INTEGER, 
+            PRIMARY KEY (word1 COLLATE BINARY, word2 COLLATE BINARY)
+        );
         """
         self.create_db(sql)
         sql = """
         CREATE TABLE IF NOT EXISTS MarkovGrammar (
-            input1 TEXT,
-            input2 TEXT,
-            output1 TEXT,
-            count INTEGER,
-            PRIMARY KEY (input1, input2, output1)
-        )
+            word1 TEXT COLLATE NOCASE,
+            word2 TEXT COLLATE NOCASE,
+            word3 TEXT COLLATE NOCASE,
+            occurances INTEGER,
+            PRIMARY KEY (word1 COLLATE BINARY, word2 COLLATE BINARY, word3 COLLATE BINARY)
+        );
         """
         self.create_db(sql)
         sql = """
         CREATE TABLE IF NOT EXISTS WhisperIgnore (
             username TEXT,
             PRIMARY KEY (username)
-        )
+        );
         """
         self.create_db(sql)
     
@@ -59,10 +63,10 @@ class Database:
         self.execute("DELETE FROM WhisperIgnore WHERE username = ?", (username,))
 
     def add_start(self, out):
-        # Add 1 to the count for the specific out. However, only if this out already exists in the db.
-        self.execute("UPDATE MarkovStart SET count = count+1 WHERE output1 = ? AND output2 = ?", (out[0], out[1]))
+        # Add 1 to the occurances for the specific out. However, only if this out already exists in the db.
+        self.execute("UPDATE MarkovStart SET occurances = occurances+1 WHERE word1 = ? AND word2 = ?", (out[0], out[1]))
         # Try to insert it anew. If it already exists there will be a Key constraint error, which will be ignored.
-        self.execute("INSERT OR IGNORE INTO MarkovStart(output1, output2, count) SELECT ?, ?, 1;", (out[0], out[1]))
+        self.execute("INSERT OR IGNORE INTO MarkovStart(word1, word2, occurances) SELECT ?, ?, 1;", (out[0], out[1]))
 
     def add_rule(self, *args):
         # Potentially interesting: Remove case sensitivity for keys to improve average choice
@@ -74,10 +78,10 @@ class Database:
             if self.checkOdds(args[0][0]):
                 return
 
-        # Add 1 to the count for the specific out. However, only if this out already exists in the db.
-        self.execute("UPDATE MarkovGrammar SET count = count+1 WHERE input1 = ? AND input2 = ? AND output1 = ?", args[0])
+        # Add 1 to the occurances for the specific out. However, only if this out already exists in the db.
+        self.execute("UPDATE MarkovGrammar SET occurances = occurances+1 WHERE word1 = ? AND word2 = ? AND word3 = ?", args[0])
         # Try to insert it anew. If it already exists there will be a Key constraint error, which will be ignored.
-        self.execute("INSERT OR IGNORE INTO MarkovGrammar(input1, input2, output1, count) SELECT ?, ?, ?, 1;", args[0])
+        self.execute("INSERT OR IGNORE INTO MarkovGrammar(word1, word2, word3, count) SELECT ?, ?, ?, 1;", args[0])
     
     def checkEqual(self, l):
         # Check if a list contains of items that are all identical
@@ -85,8 +89,8 @@ class Database:
 
     def checkOdds(self, arg):
         # Check if the odds of recursion are larger than 50%
-        total = self.execute("SELECT SUM(count) FROM MarkovGrammar WHERE input1=? AND input2=?;", (arg, arg), fetch=True)
-        recursion_case = self.execute("SELECT count FROM MarkovGrammar WHERE input1=? AND input2=? AND output1=?;", (arg, arg, arg), fetch=True)
+        total = self.execute("SELECT SUM(occurances) FROM MarkovGrammar WHERE word1 = ? AND word2 = ?;", (arg, arg), fetch=True)
+        recursion_case = self.execute("SELECT occurances FROM MarkovGrammar WHERE word1 = ? AND word2 = ? AND word3 = ?;", (arg, arg, arg), fetch=True)
         # If total is empty, then we don't want to add a recursive case 
         if len(total) == 0:
             return True
@@ -98,7 +102,7 @@ class Database:
 
     def get_next(self, *args):
         # Get all items
-        data = self.execute("SELECT output1, count FROM MarkovGrammar where input1=? AND input2=?;", args[0], fetch=True)
+        data = self.execute("SELECT word3, occurances FROM MarkovGrammar where word1 = ? AND word2 = ?;", args[0], fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         if len(data) == 0:
             return None
@@ -106,7 +110,7 @@ class Database:
     
     def get_next_single(self, inp):
         # Get all items
-        data = self.execute("SELECT input2, count FROM MarkovGrammar where input1=?;", (inp,), fetch=True)
+        data = self.execute("SELECT word2, occurances FROM MarkovGrammar where word1 = ?;", (inp,), fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         if len(data) == 0:
             return None
@@ -114,7 +118,7 @@ class Database:
 
     def get_next_single_start(self, inp):
         # Get all items
-        data = self.execute("SELECT output2, count FROM MarkovStart where output1=?;", (inp,), fetch=True)
+        data = self.execute("SELECT word2, occurances FROM MarkovStart where word1 = ?;", (inp,), fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         if len(data) == 0:
             return None

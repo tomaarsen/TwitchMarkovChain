@@ -20,6 +20,7 @@ class MarkovChain:
         self.banned_words = None
         self.cooldown = 20
         self.key_length = 2
+        self.max_sentence_length = 20
         self.prev_message_t = 0
         
         # Fill previously initialised variables with data from the settings.txt file
@@ -32,11 +33,11 @@ class MarkovChain:
                                   nick=self.nick,
                                   auth=self.auth,
                                   callback=self.message_handler,
-                                  capability="commands",
+                                  capability=["commands"],
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, banned_words, cooldown, key_length):
+    def set_settings(self, host, port, chan, nick, auth, denied_users, banned_words, cooldown, key_length, max_sentence_length):
         self.host = host
         self.port = port
         self.chan = chan
@@ -46,6 +47,7 @@ class MarkovChain:
         self.banned_words = [word.lower() for word in banned_words]
         self.cooldown = cooldown
         self.key_length = key_length
+        self.max_sentence_length = max_sentence_length
 
     def message_handler(self, m):
         try:
@@ -74,13 +76,15 @@ class MarkovChain:
                             self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - time.time():0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
                         logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - time.time():0.2f}s remaining")
 
+                # Ignore the message if it is deemed a command
                 elif self.check_if_command(m.message):
                     return
                     
+                # Ignore the message if any word in the sentence is on the ban filter
+                elif self.check_filter(m.message):
+                    return
+                
                 else:
-                    if self.containsBannedWord(m.message):
-                        return
-
                     sentences = sent_tokenize(m.message)
                     for sentence in sentences:
                         # Get all seperate words
@@ -112,10 +116,12 @@ class MarkovChain:
                         self.db.add_rule(key + ["<END>"])
                         
             elif m.type == "WHISPER":
+                # Allow people to whisper the bot to disable or enable whispers.
                 if m.message == "!nopm":
                     logging.debug(f"Adding {m.user} to Do Not Whisper.")
                     self.db.add_whisper_ignore(m.user)
                     self.ws.send_whisper(m.user, "You will no longer be sent whispers. Type !yespm to reenable. ")
+
                 elif m.message == "!yespm":
                     logging.debug(f"Removing {m.user} from Do Not Whisper.")
                     self.db.remove_whisper_ignore(m.user)
@@ -126,12 +132,14 @@ class MarkovChain:
             
     def generate(self, params=[]):
 
-        #TODO If Params are sent, test Start first
-
+        # Check for recursion
         if len(params) > 0:
             if self.check_if_command(params[0]):
                 return "You can't make me do commands, you madman!"
 
+        # Get the starting key and starting sentence.
+        # If there is more than 1 param, get the last 2 as the key.
+        # Note that self.key_length is fixed to 2 in this implementation
         if len(params) > 1:
             key = params[-self.key_length:]
             # Copy the entire params for the sentence
@@ -152,13 +160,14 @@ class MarkovChain:
                     return f"I haven't yet extracted \"{params[0]}\" from chat."
             # Copy this for the sentence
             sentence = key.copy()
-        else:
+            
+        else: # if there are no params
             # Get starting key
             key = self.db.get_start()
             # Copy this for the sentence
             sentence = key.copy()
         
-        for _ in range(20):
+        for _ in range(self.max_sentence_length - self.key_length):
             # Use key to get next word
             word = self.db.get_next(key)
 
@@ -177,7 +186,6 @@ class MarkovChain:
         # Then the params did not result in an actual sentence
         # If so, restart without params
         if len(params) > 0 and params == sentence:
-            #return self.generate()
             return "I haven't yet learned what to do with \"" + " ".join(params[-self.key_length:]) + "\""
 
         # Reset cooldown if a message was actually generated
@@ -185,7 +193,7 @@ class MarkovChain:
 
         return " ".join(sentence)
 
-    def containsBannedWord(self, message):
+    def check_filter(self, message):
         # Check if message contains any banned word
         low_mes = message.lower()
         #return True in [banned in low_mes for banned in self.banned_words]
@@ -202,14 +210,11 @@ if __name__ == "__main__":
     MarkovChain()
 
 """
-Potential TODO:
-Make keys case insensitive. eg "it" and "It" would get grouped.
-
 SQL to get the average amount of choices. The higher, the more unique sentences it will create.
 SELECT AVG(choices) FROM
 (
-	SELECT COUNT(output1) as choices
+	SELECT COUNT(word3) as choices
 	FROM MarkovGrammar
-	GROUP BY input1, input2
+	GROUP BY word1, word2
 ) myData
 """
