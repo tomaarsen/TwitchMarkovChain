@@ -64,7 +64,7 @@ class MarkovChain:
                     return
                 
                 if m.message.startswith("!generate"):
-                    if self.prev_message_t + self.cooldown < time.time():
+                    if self.prev_message_t + self.cooldown < time.time() or self.check_if_streamer(m):
                         # Get params
                         params = m.message.split(" ")[1:]
                         # Generate an actual sentence
@@ -160,7 +160,7 @@ class MarkovChain:
                     return f"I haven't yet extracted \"{params[0]}\" from chat."
             # Copy this for the sentence
             sentence = key.copy()
-            
+
         else: # if there are no params
             # Get starting key
             key = self.db.get_start()
@@ -205,6 +205,10 @@ class MarkovChain:
     def check_if_command(self, message):
         # Don't store commands, except /me
         return message.startswith(("!", "/", ".")) and not message.startswith("/me")
+    
+    def check_if_streamer(self, m):
+        # True if the user is the streamer
+        return m.user == m.channel
 
 if __name__ == "__main__":
     MarkovChain()

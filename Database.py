@@ -81,7 +81,7 @@ class Database:
         # Add 1 to the occurances for the specific out. However, only if this out already exists in the db.
         self.execute("UPDATE MarkovGrammar SET occurances = occurances+1 WHERE word1 = ? AND word2 = ? AND word3 = ?", args[0])
         # Try to insert it anew. If it already exists there will be a Key constraint error, which will be ignored.
-        self.execute("INSERT OR IGNORE INTO MarkovGrammar(word1, word2, word3, count) SELECT ?, ?, ?, 1;", args[0])
+        self.execute("INSERT OR IGNORE INTO MarkovGrammar(word1, word2, word3, occurances) SELECT ?, ?, ?, 1;", args[0])
     
     def checkEqual(self, l):
         # Check if a list contains of items that are all identical
@@ -103,7 +103,7 @@ class Database:
     def get_next(self, *args):
         # Get all items
         data = self.execute("SELECT word3, occurances FROM MarkovGrammar where word1 = ? AND word2 = ?;", args[0], fetch=True)
-        # Return a word picked from the data, using count as a weighting factor
+        # Return a word picked from the data, using occurances as a weighting factor
         if len(data) == 0:
             return None
         return self.pick_word(data)
@@ -111,7 +111,7 @@ class Database:
     def get_next_single(self, inp):
         # Get all items
         data = self.execute("SELECT word2, occurances FROM MarkovGrammar where word1 = ?;", (inp,), fetch=True)
-        # Return a word picked from the data, using count as a weighting factor
+        # Return a word picked from the data, using occurances as a weighting factor
         if len(data) == 0:
             return None
         return [inp] + [self.pick_word(data)]
@@ -119,13 +119,13 @@ class Database:
     def get_next_single_start(self, inp):
         # Get all items
         data = self.execute("SELECT word2, occurances FROM MarkovStart where word1 = ?;", (inp,), fetch=True)
-        # Return a word picked from the data, using count as a weighting factor
+        # Return a word picked from the data, using occurances as a weighting factor
         if len(data) == 0:
             return None
         return [inp] + [self.pick_word(data)]
 
     def pick_word(self, data):
-        # Add each item "count" times
+        # Add each item "occurances" times
         start_list = [tup[0] for tup in data for _ in range(tup[-1])]
         # Pick a random starting key from this weighted list
         return random.choice(start_list)
@@ -134,7 +134,13 @@ class Database:
         # TODO Prevent having to ask for all items
         # Get all items
         data = self.execute("SELECT * FROM MarkovStart;", fetch=True)
-        # Add each item "count" times
+        
+        # Add each item "occurances" times
         start_list = [list(tup[:-1]) for tup in data for _ in range(tup[-1])]
+        
+        # If nothing has ever been said
+        if len(start_list) == 0:
+            return ["There is no learned information yet", ""]
+
         # Pick a random starting key from this weighted list
         return random.choice(start_list)
