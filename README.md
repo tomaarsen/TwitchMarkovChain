@@ -177,6 +177,7 @@ This repository can be seen as an implementation using this wrapper.
 * [TwitchRhymeBot](https://github.com/CubieDev/TwitchRhymeBot)
 * [TwitchCubieBotGUI](https://github.com/CubieDev/TwitchCubieBotGUI)
 * [TwitchCubieBot](https://github.com/CubieDev/TwitchCubieBot)
+* [TwitchWeather](https://github.com/CubieDev/TwitchWeather)
 * [TwitchDeathCounter](https://github.com/CubieDev/TwitchDeathCounter)
 * [TwitchSuggestDinner](https://github.com/CubieDev/TwitchSuggestDinner)
 * [TwitchPickUser](https://github.com/CubieDev/TwitchPickUser)
