@@ -1,0 +1,2 @@
+git+git://github.com/CubieDev/TwitchWebsocket@master#egg=TwitchWebsocket
+nltk==3.4.4
