@@ -96,7 +96,8 @@ class MarkovChain:
                 
                 if m.message.startswith("!generate"):
                     if not self._enabled:
-                        self.ws.send_whisper(m.user, "The !generate has been turned off.")
+                        if not self.db.check_whisper_ignore(m.user):
+                            self.ws.send_whisper(m.user, "The !generate has been turned off. !nopm to stop me from whispering you.")
                         return
 
                     if self.prev_message_t + self.cooldown < time.time() or self.check_if_streamer(m):
