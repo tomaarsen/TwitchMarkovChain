@@ -110,6 +110,18 @@ Any number of words may be given.<br>
 Everyone can use it.<br>
 
 ---
+# Streamer commands<br>
+All of these commands can be whispered to the bot account, or typed in chat.
+
+Commands:
+<pre><b>!disable</b></pre>
+Disables the `!generate` command.
+<pre><b>!enable</b></pre>
+Reenables the `!generate` command.
+<pre><b>!setcooldown &lt;seconds&gt;/!setcd &lt;seconds&gt;</b></pre>
+Sets the cooldown between generations to `seconds`.
+
+---
 
 # Settings
 This bot is controlled by a settings.txt file, which looks like:
