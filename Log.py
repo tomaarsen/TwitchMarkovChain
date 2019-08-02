@@ -2,7 +2,7 @@ import logging, os
 import logging.config
 
 class Log():
-    def __init__(self, main_file):
+    def __init__(self, main_file, channel):
         # Dynamically change size set up for name in the logger
         here = os.path.abspath(os.path.dirname(main_file))
         this_file = os.path.basename(main_file)
@@ -17,7 +17,7 @@ class Log():
 
         # If you have a logging config like me, use it
         if "PYTHON_LOGGING_CONFIG" in os.environ:
-            logging.config.fileConfig(os.environ.get("PYTHON_LOGGING_CONFIG"), defaults={"logfilename": this_file.replace(".py", ".log")})
+            logging.config.fileConfig(os.environ.get("PYTHON_LOGGING_CONFIG"), defaults={"logfilename": this_file.replace(".py", "_") + channel + ".log"})
         else:
             # If you don't, use a standard config that outputs some INFO in the console
             logging.basicConfig(level=logging.INFO, format=f'[%(asctime)s] [%(name)-{max_name_size}s] [%(levelname)-8s] - %(message)s')

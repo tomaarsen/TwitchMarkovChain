@@ -4,9 +4,9 @@ from nltk.tokenize import sent_tokenize
 import time, logging
 
 from Log import Log
-Log(__file__)
-
 from Settings import Settings
+Log(__file__, Settings.get_channel())
+
 from Database import Database
 
 class MarkovChain:
@@ -22,6 +22,7 @@ class MarkovChain:
         self.key_length = 2
         self.max_sentence_length = 20
         self.prev_message_t = 0
+        self._enabled = True
         
         # Fill previously initialised variables with data from the settings.txt file
         Settings(self)
@@ -57,13 +58,47 @@ class MarkovChain:
             elif m.type == "NOTICE":
                 logging.info(m.message)
 
-            elif m.type == "PRIVMSG":
+            elif m.type in ("PRIVMSG", "WHISPER"):
+                if m.message.startswith("!enable") and self.check_if_streamer(m):
+                    if self._enabled:
+                        self.ws.send_whisper(m.user, "The !generate is already enabled.")
+                    else:
+                        self.ws.send_whisper(m.user, "Users can now !generate message again.")
+                        self._enabled = True
+
+                elif m.message.startswith("!disable") and self.check_if_streamer(m):
+                    if self._enabled:
+                        self.ws.send_whisper(m.user, "Users can now no longer use !generate.")
+                        self._enabled = False
+                    else:
+                        self.ws.send_whisper(m.user, "The !generate is already disabled.")
+
+                elif m.message.startswith(("!setcooldown", "!setcd")) and self.check_if_streamer(m):
+                    split_message = m.message.split(" ")
+                    if len(split_message) == 2:
+                        try:
+                            cooldown = int(split_message[1])
+                        except ValueError:
+                            self.ws.send_whisper(m.user, f"The parameter must be an integer amount, eg: !setcd 30")
+                            return
+                        self.cooldown = cooldown
+                        Settings.update_cooldown(cooldown)
+                        self.ws.send_whisper(m.user, f"The !generate cooldown has been set to {cooldown} seconds.")
+                    else:
+                        self.ws.send_whisper(m.user, f"Please add exactly 1 integer parameter, eg: !setcd 30.")
+
+
+            if m.type == "PRIVMSG":
 
                 # Ignore bot messages
                 if m.user.lower() in self.denied_users:
                     return
                 
                 if m.message.startswith("!generate"):
+                    if not self._enabled:
+                        self.ws.send_whisper(m.user, "The !generate has been turned off.")
+                        return
+
                     if self.prev_message_t + self.cooldown < time.time() or self.check_if_streamer(m):
                         # Get params
                         params = m.message.split(" ")[1:]
