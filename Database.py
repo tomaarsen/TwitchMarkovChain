@@ -13,18 +13,17 @@ class Database:
         # My ideas for such an implementation have increased the generation time by ~5x. 
         # This was not worth it for me. I may revisit this at some point.
 
-        #'''
         start_t = time.time()
-        sql = """
-        CREATE TABLE IF NOT EXISTS MarkovStart (
-            word1 TEXT COLLATE NOCASE, 
-            word2 TEXT COLLATE NOCASE, 
-            occurances INTEGER, 
-            PRIMARY KEY (word1 COLLATE BINARY, word2 COLLATE BINARY)
-        );
-        """
-        self.add_execute_queue(sql)
         for character in (list(string.ascii_uppercase + string.digits) + ["Other"]):
+            sql = f"""
+            CREATE TABLE IF NOT EXISTS MarkovStart{character} (
+                word1 TEXT COLLATE NOCASE, 
+                word2 TEXT COLLATE NOCASE, 
+                occurances INTEGER, 
+                PRIMARY KEY (word1 COLLATE BINARY, word2 COLLATE BINARY)
+            );
+            """
+            self.add_execute_queue(sql)
             sql = f"""
             CREATE TABLE IF NOT EXISTS MarkovGrammar{character} (
                 word1 TEXT COLLATE NOCASE,
@@ -44,7 +43,6 @@ class Database:
         self.add_execute_queue(sql)
         self.execute_commit()
         print(f"{time.time() - start_t:.4f}s execute time")
-        #'''
     
     def add_execute_queue(self, sql, values=None):
         if values is not None:
@@ -57,7 +55,6 @@ class Database:
             cur = conn.cursor()
             cur.execute("begin")
             for sql in self._execute_queue:
-                #print(sql)
                 cur.execute(*sql)
             self._execute_queue.clear()
             if fetch:
@@ -144,7 +141,6 @@ class Database:
         # Get all items
         data = self.execute(f"SELECT word3, occurances FROM MarkovGrammar{self.get_suffix(args[0][0][0])} where word1 = ? AND word2 = ?;", args[0], fetch=True)
         # Return a word picked from the data, using occurances as a weighting factor
-        #print("Data length:", len(data), "with args", args)
         if len(data) == 0:
             return None
         return self.pick_word(data)
@@ -159,7 +155,7 @@ class Database:
 
     def get_next_single_start(self, word):
         # Get all items
-        data = self.execute("SELECT word2, occurances FROM MarkovStart where word1 = ?;", (word,), fetch=True)
+        data = self.execute(f"SELECT word2, occurances FROM MarkovStart{self.get_suffix(word[0])} where word1 = ?;", (word,), fetch=True)
         # Return a word picked from the data, using occurances as a weighting factor
         if len(data) == 0:
             return None
@@ -172,9 +168,11 @@ class Database:
         return random.choice(start_list)
 
     def get_start(self):
-        # TODO Prevent having to ask for all items
+        # Find one character start from
+        character = random.choice(list(string.ascii_lowercase + string.digits) + ["Other"])
+
         # Get all items
-        data = self.execute("SELECT * FROM MarkovStart;", fetch=True)
+        data = self.execute(f"SELECT * FROM MarkovStart{character};", fetch=True)
         
         # Add each item "occurances" times
         start_list = [list(tup[:-1]) for tup in data for _ in range(tup[-1])]
@@ -190,13 +188,10 @@ class Database:
         # Filter out recursive case.
         if self.check_equal(item):
             return
-        #if self.check_equal(item):
-        #    if self.check_odds(item[0]):
-        #        return
         self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(item[0][0])} (word1, word2, word3, occurances) VALUES (?, ?, ?, coalesce((SELECT occurances + 1 FROM MarkovGrammar{self.get_suffix(item[0][0])} WHERE word1 = ? AND word2 = ? AND word3 = ?), 1))', values=item + item)
         
     def add_start_queue(self, item):
-        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart (word1, word2, occurances) VALUES (?, ?, coalesce((SELECT occurances + 1 FROM MarkovStart WHERE word1 = ? AND word2 = ?), 1))', values=item + item)
+        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(item[0][0])} (word1, word2, occurances) VALUES (?, ?, coalesce((SELECT occurances + 1 FROM MarkovStart{self.get_suffix(item[0][0])} WHERE word1 = ? AND word2 = ?), 1))', values=item + item)
     
     """
     def commit_rules(self):
