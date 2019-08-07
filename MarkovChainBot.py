@@ -125,14 +125,14 @@ class MarkovChain:
                     for sentence in sentences:
                         # Get all seperate words
                         words = sentence.split(" ")
-
+                        
                         # If the sentence is too short, ignore it and move on to the next.
                         if len(words) <= self.key_length:
                             continue
-
+                        
                         # Add a new starting point for a sentence to the <START>
                         #self.db.add_rule(["<START>"] + [words[x] for x in range(self.key_length)])
-                        self.db.add_start([words[x] for x in range(self.key_length)])
+                        self.db.add_start_queue([words[x] for x in range(self.key_length)])
                         
                         # Create Key variable which will be used as a key in the Dictionary for the grammar
                         key = list()
@@ -142,15 +142,17 @@ class MarkovChain:
                                 key.append(word)
                                 continue
                             
-                            self.db.add_rule(key + [word])
+                            self.db.add_rule_queue(key + [word])
                             
                             # Remove the first word, and add the current word,
                             # so that the key is correct for the next word.
                             key.pop(0)
                             key.append(word)
-                        # Add <END> at the end of the sentence
-                        self.db.add_rule(key + ["<END>"])
-                        
+                            # Add <END> at the end of the sentence
+                            self.db.add_rule_queue(key + ["<END>"])
+                    self.db.commit_rules()
+                    self.db.commit_start()
+                    
             elif m.type == "WHISPER":
                 # Allow people to whisper the bot to disable or enable whispers.
                 if m.message == "!nopm":
@@ -257,4 +259,25 @@ SELECT AVG(choices) FROM
 	FROM MarkovGrammar
 	GROUP BY word1, word2
 ) myData
+
+Input:
+I would like; to be able- to add some, slightly. longer sentence, or rather, multiple. sentences at; once. However, I am not sure how the bot will perform with this.
+
+Full:
+0.5932s total insertion time
+0.8205s total insertion time
+0.9009s total insertion time
+1.6253s total insertion time
+
+Empty:
+0.1087s total insertion time
+0.1473s total insertion time
+0.1633s total insertion time
+0.2858s total insertion time
+
+Reworked:
+0.0070s tokenize time
+0.0070s total insertion time
+0.0130s total rule commit time
+0.0050s total start commit time
 """
