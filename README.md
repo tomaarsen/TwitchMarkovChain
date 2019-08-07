@@ -14,7 +14,7 @@ To explain how the bot works, I will provide an example situation with two messa
 <pre><b>Curly fries are the worst kind of fries
 Loud people are the reason I don't go to the movies anymore
 </b></pre>
-Let's start with the first sentence and parse it like the bot will, in sections of keyLength(which is 2) + 1 = 3 words.
+Let's start with the first sentence and parse it like the bot will, in sections of `keyLength + 1` or `2 + 1 = 3` words.
 <pre><b>
  Curly fries are the worst kind of fries</b>
 [Curly fries:are]
@@ -25,7 +25,7 @@ Let's start with the first sentence and parse it like the bot will, in sections 
                           [kind of:fries]
 </pre>
 For each of these sets of three words, the last word is considered the output, while all words before it are considered inputs.
-These words are then turned into a variation of a [Context Free Grammar](https://en.wikipedia.org/wiki/Context-free_grammar):
+These words are then turned into a variation of a [Grammar](https://en.wikipedia.org/wiki/Formal_grammar):
 <pre>
 "Curly fries" -> "are"
 "fries are"   -> "the"
@@ -34,7 +34,7 @@ These words are then turned into a variation of a [Context Free Grammar](https:/
 "worst kind"  -> "of"
 "kind of"     -> "fries"
 </pre>
-You could see this as: if given input "the worst", we will output "kind".<br>
+You could see this as a function that, when given input "the worst", will output "kind".<br>
 In order for this to know where sentences begin, we also add the first keyLength (2) words to a seperate Database, where a list of possible starts of sentences reside.<br>
 
 This exact same process is applied to the second sentence as well. After doing so, the resulting grammar (and our database) looks like:
@@ -60,7 +60,7 @@ and in the database for starts of sentences:
 "Curly fries"
 "Loud people"
 </pre>
-Note that the | could be seen as "or". In the case of the bold text above, it could be read as: if the given input is "are the", then the output is "worst" or "reason".
+Note that the | is considered to be "or". In the case of the bold text above, it could be read as: if the given input is "are the", then the output is "worst" **or** "reason".
 
 ### Generation
 
