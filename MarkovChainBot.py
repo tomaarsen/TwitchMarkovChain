@@ -104,7 +104,9 @@ class MarkovChain:
                         # Get params
                         params = m.message.split(" ")[1:]
                         # Generate an actual sentence
+                        start_t = time.time()
                         sentence = self.generate(params)
+                        print(f"{time.time() - start_t:.4f}s generation time")
                         logging.info(sentence)
                         self.ws.send_message(sentence)
                     else:
@@ -121,6 +123,7 @@ class MarkovChain:
                     return
                 
                 else:
+                    start_t = time.time()
                     sentences = sent_tokenize(m.message)
                     for sentence in sentences:
                         # Get all seperate words
@@ -148,10 +151,12 @@ class MarkovChain:
                             # so that the key is correct for the next word.
                             key.pop(0)
                             key.append(word)
-                            # Add <END> at the end of the sentence
-                            self.db.add_rule_queue(key + ["<END>"])
-                    self.db.commit_rules()
-                    self.db.commit_start()
+                        # Add <END> at the end of the sentence
+                        self.db.add_rule_queue(key + ["<END>"])
+                    #self.db.commit_rules()
+                    #self.db.commit_start()
+                    self.db.execute_commit()
+                    print(f"{time.time() - start_t:.4f}s insertion time")
                     
             elif m.type == "WHISPER":
                 # Allow people to whisper the bot to disable or enable whispers.
@@ -280,4 +285,29 @@ Reworked:
 0.0070s total insertion time
 0.0130s total rule commit time
 0.0050s total start commit time
+
+Coalesce:
+0.0220s insertion time
+0.0169s insertion time
+0.0198s insertion time
+0.0100s insertion time
+0.0110s insertion time
+0.0109s insertion time
+0.0180s insertion time
+0.0190s insertion time
+0.0184s insertion time
+0.0124s insertion time
+
+Two methods:
+0.0702s insertion time
+0.0319s insertion time
+0.0359s insertion time
+0.0389s insertion time
+0.0329s insertion time
+0.0375s insertion time
+0.0523s insertion time
+0.0363s insertion time
+0.0369s insertion time
+0.0397s insertion time
+0.0344s insertion time
 """
