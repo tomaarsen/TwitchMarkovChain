@@ -1,5 +1,6 @@
 
-import json, os
+import json, os, logging
+logger = logging.getLogger(__name__)
 
 class Settings:
     """ Loads data from settings.txt into the bot """

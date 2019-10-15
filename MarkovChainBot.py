@@ -1,7 +1,7 @@
 
 from TwitchWebsocket import TwitchWebsocket
 from nltk.tokenize import sent_tokenize
-import time, logging
+import time, logging, re
 
 from Log import Log
 from Settings import Settings
@@ -23,6 +23,7 @@ class MarkovChain:
         self.max_sentence_length = 20
         self.prev_message_t = 0
         self._enabled = True
+        self.link_regex = re.compile("((https?\:\/\/)(www\.)?|(www\.))([A-Za-z0-9]{3,}\.[^\s]*)")
         
         # Fill previously initialised variables with data from the settings.txt file
         Settings(self)
@@ -87,7 +88,6 @@ class MarkovChain:
                     else:
                         self.ws.send_whisper(m.user, f"Please add exactly 1 integer parameter, eg: !setcd 30.")
 
-
             if m.type == "PRIVMSG":
 
                 # Ignore bot messages
@@ -118,6 +118,10 @@ class MarkovChain:
                     
                 # Ignore the message if any word in the sentence is on the ban filter
                 elif self.check_filter(m.message):
+                    return
+                
+                # Ignore the message if it contains a link.
+                elif self.check_link(m.message):
                     return
                 
                 else:
@@ -164,12 +168,18 @@ class MarkovChain:
                     self.db.remove_whisper_ignore(m.user)
                     self.ws.send_whisper(m.user, "You will again be sent whispers. Type !nopm to disable again. ")
 
+            elif m.type == "CLEARMSG":
+                # If a message is deleted, its contents will be unlearned
+                # or rather, the "occurances" attribute of each combinations of words in the sentence
+                # is reduced by 5, and deleted if the occurances is now less than 1. 
+                self.db.unlearn(m.message)
+
         except Exception as e:
             logging.exception(e)
             
-    def generate(self, params=[]):
+    def generate(self, params):
 
-        # Check for recursion
+        # Check for commands or recursion, eg: !generate !generate
         if len(params) > 0:
             if self.check_if_command(params[0]):
                 return "You can't make me do commands, you madman!"
@@ -187,14 +197,14 @@ class MarkovChain:
             key = self.db.get_next_single_start(params[0])
             if key == None:
                 # If this failed, we try to find the next word in the grammar as a whole
-                key = self.db.get_next_single(params[0])
+                key = self.db.get_next_single_initial(params[0])
                 if key == None:
                     # If there is no word to go after our param word, then just generate a sentence without parameters
                     # We don't do this anymore
                     #return self.generate()
 
                     # Return a message that this word hasn't been learned yet
-                    return f"I haven't yet extracted \"{params[0]}\" from chat."
+                    return f"I haven't extracted \"{params[0]}\" from chat yet."
             # Copy this for the sentence
             sentence = key.copy()
 
@@ -204,9 +214,13 @@ class MarkovChain:
             # Copy this for the sentence
             sentence = key.copy()
         
-        for _ in range(self.max_sentence_length - self.key_length):
+        for i in range(self.max_sentence_length - self.key_length):
             # Use key to get next word
-            word = self.db.get_next(key)
+            if i == 0:
+                # Prevent fetching <END> on the first go
+                word = self.db.get_next_initial(key)
+            else:
+                word = self.db.get_next(key)
 
             # Return if next word is the END
             if word == "<END>" or word == None:
@@ -246,6 +260,10 @@ class MarkovChain:
     def check_if_streamer(self, m):
         # True if the user is the streamer
         return m.user == m.channel
+
+    def check_link(self, message):
+        # True if message contains a link
+        return self.link_regex.search(message)
 
 if __name__ == "__main__":
     MarkovChain()
