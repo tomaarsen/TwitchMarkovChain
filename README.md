@@ -17,7 +17,7 @@ To explain how the bot works, I will provide an example situation with two messa
 <pre><b>Curly fries are the worst kind of fries
 Loud people are the reason I don't go to the movies anymore
 </b></pre>
-Let's start with the first sentence and parse it like the bot will, in sections of `keyLength + 1` or `2 + 1 = 3` words.
+Let's start with the first sentence and parse it like the bot will. To do so, we will split up the sentence in sections of size `keyLength + 1` words. As keyLength has been set to 2 in the [Settings](#settings) section, each section has size `3`.
 <pre><b>
  Curly fries are the worst kind of fries</b>
 [Curly fries:are]
@@ -27,7 +27,7 @@ Let's start with the first sentence and parse it like the bot will, in sections 
                     [worst kind:of]
                           [kind of:fries]
 </pre>
-For each of these sets of three words, the last word is considered the output, while all words before it are considered inputs.
+For each of these sections of three words, the last word is considered the output, while all other words it are considered inputs.
 These words are then turned into a variation of a [Grammar](https://en.wikipedia.org/wiki/Formal_grammar):
 <pre>
 "Curly fries" -> "are"
@@ -37,8 +37,8 @@ These words are then turned into a variation of a [Grammar](https://en.wikipedia
 "worst kind"  -> "of"
 "kind of"     -> "fries"
 </pre>
-You could see this as a function that, when given input "the worst", will output "kind".<br>
-In order for this to know where sentences begin, we also add the first keyLength (2) words to a seperate Database, where a list of possible starts of sentences reside.<br>
+This can be considered a function that, when given input "the worst", will output "kind".<br>
+In order for this to know where sentences begin, we also add the first `keyLength` words to a seperate Database, where a list of possible starts of sentences reside.<br>
 
 This exact same process is applied to the second sentence as well. After doing so, the resulting grammar (and our database) looks like:
 <pre>
@@ -63,29 +63,29 @@ and in the database for starts of sentences:
 "Curly fries"
 "Loud people"
 </pre>
-Note that the | is considered to be "or". In the case of the bold text above, it could be read as: if the given input is "are the", then the output is "worst" **or** "reason".
+Note that the | is considered to be *"or"*. In the case of the bold text above, it could be read as: if the given input is "are the", then the output is *"worst"* **or** *"reason"*.
+
+In practice, more frequent phrases will have higher precedence. The more often a phrase is said, the more likely it is to be generated. 
 
 ### Generation
 
-When a message is generated with `!generate`, a random start of a sentence is picked from the database of starts of sentences. In our example the randomly picked start is "Curly fries".
+When a message is generated with `!generate`, a random start of a sentence is picked from the database of starts of sentences. In our example the randomly picked start is *"Curly fries"*.
 
 Now, in a loop:<br>
     the output for the input is generated via the grammar, <br>
     and the input is shifted to remove the first word and add the output to the input.<br>
 A more programmatic example of this would be this:
 ```python
-# This is Pseudo-code meant for anyone to understand how this project works.
-# Not code you should necessarily adopt.
-input = "Curly fries" # Start of sentence
-print(input)
-loop start
-    output = GetOutputFromInput(input) # Generated via the grammar
-    print(output)
-    input = ShiftInput(input, output) # Remove the first word, add the new output.
-    #                 For the first iteration, this new input becomes "fries are".
+# This initial sentence is either from the database for starts of sentences, 
+# or from words passed in Twitch chat
+sentence = ["Curly", "fries"]
+for i in range(sentence_length):
+    # Generate a word using last 2 words in the partial sentence, 
+    # and append it to the partial sentence
+    sentence.append(generate(sentence[-2:]))
 ```
 
-Often times an input has multiple possible outputs, as we can see in the bold part of the previous grammar. In these events, learned information about multiple messages can be merged into one message. For instance, in our example, potential outputs are
+It's common for an input sequence to have multiple possible outputs, as we can see in the bold part of the previous grammar. This allows learned information from multiple messages to be merged into one message. For instance, some potential outputs from the given example are
 <pre><b>Curly fries are the reason I don't go to the movies anymore</b></pre>
 or
 <pre><b>Loud people are the worst kind of fries</b></pre>
