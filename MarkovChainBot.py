@@ -94,7 +94,7 @@ class MarkovChain:
                 if m.user.lower() in self.denied_users:
                     return
                 
-                if m.message.startswith("!generate"):
+                if self.check_if_generate(m.message):
                     if not self._enabled:
                         if not self.db.check_whisper_ignore(m.user):
                             self.ws.send_whisper(m.user, "The !generate has been turned off. !nopm to stop me from whispering you.")
@@ -244,7 +244,7 @@ class MarkovChain:
 
         return " ".join(sentence)
 
-    def check_filter(self, message):
+    def check_filter(self, message) -> bool:
         # Check if message contains any banned word
         low_mes = message.lower()
         #return True in [banned in low_mes for banned in self.banned_words]
@@ -252,16 +252,20 @@ class MarkovChain:
             if banned in low_mes:
                 return True
         return False
+
+    def check_if_generate(self, message) -> bool:
+        # True if the first "word" of the message is either !generate or !g.
+        return message.split()[0] in ("!generate", "!g")
     
-    def check_if_command(self, message):
+    def check_if_command(self, message) -> bool:
         # Don't store commands, except /me
         return message.startswith(("!", "/", ".")) and not message.startswith("/me")
     
-    def check_if_streamer(self, m):
+    def check_if_streamer(self, m) -> bool:
         # True if the user is the streamer
         return m.user == m.channel
 
-    def check_link(self, message):
+    def check_link(self, message) -> bool:
         # True if message contains a link
         return self.link_regex.search(message)
 
