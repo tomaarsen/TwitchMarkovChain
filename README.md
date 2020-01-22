@@ -96,15 +96,17 @@ or
 <b>Run the MarkovChainBot.py file</b>
 
 Command:
-<pre><b>!generate</b></pre>
+<pre><b>!generate</b>
+<b>!g</b></pre>
 Result (for example):
 <pre><b>Curly fries are the reason I don't go to the movies anymore</b></pre>
 Everyone can use it.<br>
 
 Command:
-<pre><b>!generate [words]</b></pre>
+<pre><b>!generate [words]</b>
+<b>!g [words]</b></pre>
 Example:
-<pre><b>!generate That is the</b></pre>
+<pre><b>!g That is the</b></pre>
 Result (for example):
 <pre><b>That is the mouth there?</b></pre>
 The bot will, when given this command, try to complete the start of the sentence which was given.<br> 
