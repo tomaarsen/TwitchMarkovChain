@@ -40,6 +40,14 @@ class Database:
         );
         """
         self.add_execute_queue(sql)
+        sql = """
+        CREATE TABLE IF NOT EXISTS Logs (
+            time INTEGER,
+            message INTEGER,
+            feedback INTEGER
+        );
+        """
+        self.add_execute_queue(sql)
         self.execute_commit()
     
     def add_execute_queue(self, sql, values=None):
@@ -177,3 +185,9 @@ class Database:
             # Delete if occurances is now less than 0.
             self.add_execute_queue(f'DELETE FROM MarkovGrammar{self.get_suffix(word1[0])} WHERE word1 = ? AND word2 = ? AND word3 = ? AND occurances <= 0;', values=(word1, word2, word3, ))
         self.execute_commit()
+
+    def log(self, message):
+        self.execute("INSERT INTO Logs (time, message, feedback) VALUES (?, ?, ?)", values=(round(time.time()), message, 0))
+    
+    def feedback(self):
+        self.execute("UPDATE Logs SET feedback = feedback + 1 WHERE ROWID = (SELECT MAX(ROWID) FROM Logs)")

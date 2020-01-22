@@ -24,6 +24,8 @@ class MarkovChain:
         self.prev_message_t = 0
         self._enabled = True
         self.link_regex = re.compile("((https?\:\/\/)(www\.)?|(www\.))([A-Za-z0-9]{3,}\.[^\s]*)")
+        self.feedback_regex = re.compile("(bot|cubie|b0t|lul|poggers|pepehands)", flags=re.I)
+        self.feedback_time = 30
         
         # Fill previously initialised variables with data from the settings.txt file
         Settings(self)
@@ -94,7 +96,7 @@ class MarkovChain:
                 if m.user.lower() in self.denied_users:
                     return
                 
-                if m.message.startswith("!generate"):
+                if self.check_if_generate(m.message):
                     if not self._enabled:
                         if not self.db.check_whisper_ignore(m.user):
                             self.ws.send_whisper(m.user, "The !generate has been turned off. !nopm to stop me from whispering you.")
@@ -105,8 +107,9 @@ class MarkovChain:
                         params = m.message.split(" ")[1:]
                         # Generate an actual sentence
                         sentence = self.generate(params)
-                        logging.info(sentence)
                         self.ws.send_message(sentence)
+                        logging.info(sentence)
+                        self.db.log(sentence)
                     else:
                         if not self.db.check_whisper_ignore(m.user):
                             self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - time.time():0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
@@ -155,6 +158,10 @@ class MarkovChain:
                         # Add <END> at the end of the sentence
                         self.db.add_rule_queue(key + ["<END>"])
                     self.db.execute_commit()
+
+                    # In addition to learning, we will try to see if this message was feedback on a previous generation
+                    if self.check_feedback(m.message):
+                        self.db.feedback()
                     
             elif m.type == "WHISPER":
                 # Allow people to whisper the bot to disable or enable whispers.
@@ -173,6 +180,8 @@ class MarkovChain:
                 # or rather, the "occurances" attribute of each combinations of words in the sentence
                 # is reduced by 5, and deleted if the occurances is now less than 1. 
                 self.db.unlearn(m.message)
+            else:
+                print(m)
 
         except Exception as e:
             logging.exception(e)
@@ -244,7 +253,7 @@ class MarkovChain:
 
         return " ".join(sentence)
 
-    def check_filter(self, message):
+    def check_filter(self, message) -> bool:
         # Check if message contains any banned word
         low_mes = message.lower()
         #return True in [banned in low_mes for banned in self.banned_words]
@@ -252,18 +261,26 @@ class MarkovChain:
             if banned in low_mes:
                 return True
         return False
+
+    def check_if_generate(self, message) -> bool:
+        # True if the first "word" of the message is either !generate or !g.
+        return message.split()[0] in ("!generate", "!g")
     
-    def check_if_command(self, message):
+    def check_if_command(self, message) -> bool:
         # Don't store commands, except /me
         return message.startswith(("!", "/", ".")) and not message.startswith("/me")
     
-    def check_if_streamer(self, m):
+    def check_if_streamer(self, m) -> bool:
         # True if the user is the streamer
         return m.user == m.channel
 
-    def check_link(self, message):
+    def check_link(self, message) -> bool:
         # True if message contains a link
         return self.link_regex.search(message)
+
+    def check_feedback(self, message) -> bool:
+        # True if message may contain feedback on a previous generation
+        return time.time() < self.prev_message_t + self.feedback_time and self.feedback_regex.search(message)
 
 if __name__ == "__main__":
     MarkovChain()
