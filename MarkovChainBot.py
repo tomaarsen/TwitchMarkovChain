@@ -197,12 +197,8 @@ class MarkovChain:
             key = self.db.get_next_single_start(params[0])
             if key == None:
                 # If this failed, we try to find the next word in the grammar as a whole
-                key = self.db.get_next_single_initial(params[0])
+                key = self.db.get_next_single_initial(0, params[0])
                 if key == None:
-                    # If there is no word to go after our param word, then just generate a sentence without parameters
-                    # We don't do this anymore
-                    #return self.generate()
-
                     # Return a message that this word hasn't been learned yet
                     return f"I haven't extracted \"{params[0]}\" from chat yet."
             # Copy this for the sentence
@@ -218,9 +214,9 @@ class MarkovChain:
             # Use key to get next word
             if i == 0:
                 # Prevent fetching <END> on the first go
-                word = self.db.get_next_initial(key)
+                word = self.db.get_next_initial(i, key)
             else:
-                word = self.db.get_next(key)
+                word = self.db.get_next(i, key)
 
             # Return if next word is the END
             if word == "<END>" or word == None:

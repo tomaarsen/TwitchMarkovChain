@@ -5,8 +5,6 @@ logger = logging.getLogger(__name__)
 class Database:
     def __init__(self, channel):
         self.db_name = f"MarkovChain_{channel.replace('#', '').lower()}.db"
-        #self._start_queue = []
-        #self._rule_queue = []
         self._execute_queue = []
 
         # TODO: Punctuation insensitivity.
@@ -53,7 +51,6 @@ class Database:
             cur = conn.cursor()
             cur.execute("begin")
             for sql in self._execute_queue:
-                #print("Executing ", *sql)
                 cur.execute(*sql)
             self._execute_queue.clear()
             cur.execute("commit")
@@ -70,7 +67,7 @@ class Database:
             conn.commit()
             if fetch:
                 return cur.fetchall()
-      
+    
     def get_suffix(self, character):
         if character.lower() in (string.ascii_lowercase + string.digits):
             return character.upper()
@@ -89,51 +86,42 @@ class Database:
         # Check if a list contains of items that are all identical
         return not l or l.count(l[0]) == len(l)
 
-    def get_next(self, *args):
+    def get_next(self, index, *args):
         # Get all items
         data = self.execute(f"SELECT word3, occurances FROM MarkovGrammar{self.get_suffix(args[0][0][0])} WHERE word1 = ? AND word2 = ?;", args[0], fetch=True)
         # Return a word picked from the data, using occurances as a weighting factor
-        if len(data) == 0:
-            return None
-        return self.pick_word(data)
+        return None if len(data) == 0 else self.pick_word(data, index)
+        #    return None
+        #return self.pick_word(data)
 
-    def get_next_initial(self, *args):
+    def get_next_initial(self, index, *args):
         # Get all items
         data = self.execute(f"SELECT word3, occurances FROM MarkovGrammar{self.get_suffix(args[0][0][0])} WHERE word1 = ? AND word2 = ? AND word3 != '<END>';", args[0], fetch=True)
         # Return a word picked from the data, using occurances as a weighting factor
-        if len(data) == 0:
-            return None
-        return self.pick_word(data)
+        return None if len(data) == 0 else self.pick_word(data, index)
     
-    def get_next_single(self, word):
+    def get_next_single(self, index, word):
         # Get all items
         data = self.execute(f"SELECT word2, occurances FROM MarkovGrammar{self.get_suffix(word[0])} WHERE word1 = ?;", (word,), fetch=True)
         # Return a word picked from the data, using occurances as a weighting factor
-        if len(data) == 0:
-            return None
-        return [word] + [self.pick_word(data)]
+        return None if len(data) == 0 else [word] + [self.pick_word(data, index)]
     
-    def get_next_single_initial(self, word):
+    def get_next_single_initial(self, index, word):
         # Get all items
         data = self.execute(f"SELECT word2, occurances FROM MarkovGrammar{self.get_suffix(word[0])} WHERE word1 = ? AND word2 != '<END>';", (word,), fetch=True)
         # Return a word picked from the data, using occurances as a weighting factor
-        if len(data) == 0:
-            return None
-        return [word] + [self.pick_word(data)]
+        return None if len(data) == 0 else [word] + [self.pick_word(data, index)]
 
     def get_next_single_start(self, word):
         # Get all items
         data = self.execute(f"SELECT word2, occurances FROM MarkovStart{self.get_suffix(word[0])} WHERE word1 = ?;", (word,), fetch=True)
         # Return a word picked from the data, using occurances as a weighting factor
-        if len(data) == 0:
-            return None
-        return [word] + [self.pick_word(data)]
+        return None if len(data) == 0 else [word] + [self.pick_word(data)]
 
-    def pick_word(self, data):
-        # Add each item "occurances" times
-        start_list = [tup[0] for tup in data for _ in range(tup[-1])]
-        # Pick a random starting key from this weighted list
-        return random.choice(start_list)
+    def pick_word(self, data, index=0):
+        # Pick a random starting key from a weighted list
+        # Note that the <END> values are weighted based on index.
+        return random.choices(data, weights=[tup[1] / ((index+1)/10) if tup[0] == "<END>" else tup[1] for tup in data])[0][0]
 
     def get_start(self):
         # Find one character start from
@@ -156,10 +144,10 @@ class Database:
         # Filter out recursive case.
         if self.check_equal(item):
             return
-        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(item[0][0])} (word1, word2, word3, occurances) VALUES (?, ?, ?, coalesce((SELECT occurances + 1 FROM MarkovGrammar{self.get_suffix(item[0][0])} WHERE word1 = ? AND word2 = ? AND word3 = ?), 1))', values=item + item)
+        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(item[0][0])} (word1, word2, word3, occurances) VALUES (?, ?, ?, coalesce((SELECT occurances + 1 FROM MarkovGrammar{self.get_suffix(item[0][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY AND word3 = ? COLLATE BINARY), 1))', values=item + item)
         
     def add_start_queue(self, item):
-        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(item[0][0])} (word1, word2, occurances) VALUES (?, ?, coalesce((SELECT occurances + 1 FROM MarkovStart{self.get_suffix(item[0][0])} WHERE word1 = ? AND word2 = ?), 1))', values=item + item)
+        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(item[0][0])} (word1, word2, occurances) VALUES (?, ?, coalesce((SELECT occurances + 1 FROM MarkovStart{self.get_suffix(item[0][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY), 1))', values=item + item)
     
     def unlearn(self, message):
         words = message.split(" ")
