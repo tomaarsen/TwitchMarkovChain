@@ -100,7 +100,8 @@ class MarkovChain:
                             self.ws.send_whisper(m.user, "The !generate has been turned off. !nopm to stop me from whispering you.")
                         return
 
-                    if self.prev_message_t + self.cooldown < time.time() or self.check_if_streamer(m):
+                    cur_time = time.time()
+                    if self.prev_message_t + self.cooldown < cur_time or self.check_if_streamer(m):
                         # Get params
                         params = m.message.split(" ")[1:]
                         # Generate an actual sentence
@@ -109,8 +110,8 @@ class MarkovChain:
                         self.ws.send_message(sentence)
                     else:
                         if not self.db.check_whisper_ignore(m.user):
-                            self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - time.time():0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
-                        logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - time.time():0.2f}s remaining")
+                            self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - cur_time:0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
+                        logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - cur_time:0.2f}s remaining")
 
                 # Ignore the message if it is deemed a command
                 elif self.check_if_command(m.message):
