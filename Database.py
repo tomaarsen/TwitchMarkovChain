@@ -121,7 +121,7 @@ class Database:
     def pick_word(self, data, index=0):
         # Pick a random starting key from a weighted list
         # Note that the <END> values are weighted based on index.
-        return random.choices(data, weights=[tup[1] / ((index+1)/10) if tup[0] == "<END>" else tup[1] for tup in data])[0][0]
+        return random.choices(data, weights=[tup[1] * ((index+1)/15) if tup[0] == "<END>" else tup[1] for tup in data])[0][0]
 
     def get_start(self):
         # Find one character start from
