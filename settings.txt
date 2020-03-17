@@ -10,10 +10,6 @@
         "Moobot",
         "Marbiebot"
     ],
-    "BannedWords": [
-        "<START>",
-        "<END>"
-    ],
     "Cooldown": 20,
     "KeyLength": 2,
     "MaxSentenceWordAmount": 25

@@ -1,12 +1,12 @@
 
 from TwitchWebsocket import TwitchWebsocket
 from nltk.tokenize import sent_tokenize
-import time, logging, re
+import time, logging, re, string
 
 from Log import Log
-from Settings import Settings
-Log(__file__, Settings.get_channel())
+Log(__file__)
 
+from Settings import Settings
 from Database import Database
 
 class MarkovChain:
@@ -17,14 +17,16 @@ class MarkovChain:
         self.nick = None
         self.auth = None
         self.denied_users = None
-        self.banned_words = None
         self.cooldown = 20
         self.key_length = 2
         self.max_sentence_length = 20
         self.prev_message_t = 0
         self._enabled = True
         self.link_regex = re.compile("((https?\:\/\/)(www\.)?|(www\.))([A-Za-z0-9]{3,}\.[^\s]*)")
-        
+        # Make a translation table for removing punctuation efficiently
+        self.punct_trans_table = str.maketrans("", "", string.punctuation)
+        self.set_blacklist()
+
         # Fill previously initialised variables with data from the settings.txt file
         Settings(self)
         self.db = Database(self.chan)
@@ -39,14 +41,13 @@ class MarkovChain:
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, banned_words, cooldown, key_length, max_sentence_length):
+    def set_settings(self, host, port, chan, nick, auth, denied_users, cooldown, key_length, max_sentence_length):
         self.host = host
         self.port = port
         self.chan = chan
         self.nick = nick
         self.auth = auth
         self.denied_users = [user.lower() for user in denied_users] + [self.nick.lower()]
-        self.banned_words = [word.lower() for word in banned_words]
         self.cooldown = cooldown
         self.key_length = key_length
         self.max_sentence_length = max_sentence_length
@@ -102,10 +103,12 @@ class MarkovChain:
 
                     cur_time = time.time()
                     if self.prev_message_t + self.cooldown < cur_time or self.check_if_streamer(m):
-                        # Get params
-                        params = m.message.split(" ")[1:]
-                        # Generate an actual sentence
-                        sentence = self.generate(params)
+                        if self.check_filter(m.message):
+                            sentence = "You can't make me say that, you madman!"
+                        else:
+                            params = m.message.split(" ")[1:]
+                            # Generate an actual sentence
+                            sentence = self.generate(params)
                         logging.info(sentence)
                         self.ws.send_message(sentence)
                     else:
@@ -114,15 +117,16 @@ class MarkovChain:
                         logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - cur_time:0.2f}s remaining")
 
                 # Ignore the message if it is deemed a command
-                elif self.check_if_command(m.message):
-                    return
-                    
-                # Ignore the message if any word in the sentence is on the ban filter
-                elif self.check_filter(m.message):
+                elif self.check_if_other_command(m.message):
                     return
                 
                 # Ignore the message if it contains a link.
                 elif self.check_link(m.message):
+                    return
+                    
+                # Ignore the message if any word in the sentence is on the ban filter
+                elif self.check_filter(m.message):
+                    logging.warning(f"Sentence contained blacklisted word or phrase:\"{m.message}\"")
                     return
                 
                 else:
@@ -169,11 +173,31 @@ class MarkovChain:
                     self.db.remove_whisper_ignore(m.user)
                     self.ws.send_whisper(m.user, "You will again be sent whispers. Type !nopm to disable again. ")
 
+                elif m.user.lower() == "cubiedev" and self.check_if_blacklist(m.message):
+                    if len(m.message.split()) == 2: # TODO: Rework this
+                        self.blacklist.append(m.message.split()[1])
+                        self.write_blacklist(self.blacklist)
+                        self.ws.send_whisper(m.user, "Added word to Blacklist.")
+
+                elif m.user.lower() == "cubiedev" and self.check_if_whitelist(m.message):
+                    if len(m.message.split()) == 2: # TODO: Rework this
+                        try:
+                            self.blacklist.remove(m.message.split()[1])
+                            self.write_blacklist(self.blacklist)
+                            self.ws.send_whisper(m.user, "Removed word from Blacklist.")
+                        except ValueError:
+                            self.ws.send_whisper(m.user, "Word was already not in the blacklist.")
+
             elif m.type == "CLEARMSG":
                 # If a message is deleted, its contents will be unlearned
                 # or rather, the "occurances" attribute of each combinations of words in the sentence
                 # is reduced by 5, and deleted if the occurances is now less than 1. 
                 self.db.unlearn(m.message)
+                
+                # TODO: Think of some efficient way to check whether it was our message that got deleted.
+                # If the bot's message was deleted, log this as an error
+                #if m.user.lower() == self.nick.lower():
+                #    logging.error(f"This bot message was deleted: \"{m.message}\"")
 
         except Exception as e:
             logging.exception(e)
@@ -182,7 +206,7 @@ class MarkovChain:
 
         # Check for commands or recursion, eg: !generate !generate
         if len(params) > 0:
-            if self.check_if_command(params[0]):
+            if self.check_if_other_command(params[0]):
                 return "You can't make me do commands, you madman!"
 
         # Get the starting key and starting sentence.
@@ -241,20 +265,50 @@ class MarkovChain:
 
         return " ".join(sentence)
 
+    def write_blacklist(self, blacklist):
+        logging.debug("Writing Blacklist...")
+        with open("blacklist.txt", "w") as f:
+            f.write("\n".join(sorted(blacklist, key=lambda x: len(x), reverse=True)))
+        logging.debug("Written Blacklist.")
+
+    def set_blacklist(self) -> None:
+        logging.debug("Loading Blacklist...")
+        try:
+            with open("blacklist.txt", "r") as f:
+                self.blacklist = [l.replace("\n", "") for l in f.readlines()]
+                logging.debug("Loaded Blacklist.")
+        
+        except FileNotFoundError:
+            logging.warning("Loading Blacklist Failed!")
+            self.blacklist = ["<start>", "<end>"]
+            self.write_blacklist(self.blacklist)
+
     def check_filter(self, message) -> bool:
-        # Check if message contains any banned word
-        low_mes = message.lower()
-        #return True in [banned in low_mes for banned in self.banned_words]
-        for banned in self.banned_words:
-            if banned in low_mes:
+        # Returns True if message contains a banned word.
+        for word in message.translate(self.punct_trans_table).lower().split():
+            if word in self.blacklist:
                 return True
         return False
 
+    def check_if_our_command(self, message: str, command) -> bool:
+        # True if the first "word" of the message is either exactly command, or in the tuple of commands
+        if isinstance(command, str):
+            return message.split()[0] == command
+        return message.split()[0] in command
+
+    def check_if_whitelist(self, message) -> bool:
+        # True if the first "word" of the message is !whitelist
+        return self.check_if_our_command(message, "!whitelist")
+
+    def check_if_blacklist(self, message) -> bool:
+        # True if the first "word" of the message is !blacklist
+        return self.check_if_our_command(message, "!blacklist")
+
     def check_if_generate(self, message) -> bool:
         # True if the first "word" of the message is either !generate or !g.
-        return message.split()[0] in ("!generate", "!g")
+        return self.check_if_our_command(message, ("!generate", "!g"))
     
-    def check_if_command(self, message) -> bool:
+    def check_if_other_command(self, message) -> bool:
         # Don't store commands, except /me
         return message.startswith(("!", "/", ".")) and not message.startswith("/me")
     
