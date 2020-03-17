@@ -143,10 +143,6 @@ This bot is controlled by a settings.txt file, which looks like:
         "Moobot",
         "Marbiebot"
     ],
-    "BannedWords": [
-        "<START>",
-        "<END>"
-    ],
     "Cooldown": 20,
     "KeyLength": 2
 }
@@ -160,13 +156,16 @@ This bot is controlled by a settings.txt file, which looks like:
 | Nickname             | The Username of the bot account.                                  | "CubieB0T" |
 | Authentication       | The OAuth token for the bot account.                              | "oauth:pivogip8ybletucqdz4pkhag6itbax" |
 | DeniedUsers | The list of bot account who's messages should not be learned from. The bot itself it automatically added to this. | ["StreamElements", "Nightbot", "Moobot", "Marbiebot"] |
-| BannedWords | A list of words which should not be added into the Database. The default data is there due to the current implementation. You can add any words you never want the bot to learn. Case insensitive. | [`"<START>", "<END>"`] |
 | Cooldown | A cooldown in seconds between successful generations. If a generation fails (eg inputs it can't work with), then the cooldown is not reset and another generation can be done immediately. | 20 |
 | KeyLength | A technical parameter which, in my previous implementation, would affect how closely the output matches the learned inputs. In the current implementation the database structure does not allow this parameter to be changed. Do not change. | 2 | 
 
 *Note that the example OAuth token is not an actual token, but merely a generated string to give an indication what it might look like.*
 
 I got my real OAuth token from https://twitchapps.com/tmi/.
+
+### Blacklist
+
+You may add words to a blacklist by adding them on a separate line in `blacklist.txt`. Each word is case insensitive. By default, this file only contains `<start>` and `<end>`, which are required for the current implementation. 
 
 ---
 
