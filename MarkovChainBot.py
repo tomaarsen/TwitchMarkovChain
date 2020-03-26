@@ -145,7 +145,17 @@ class MarkovChain:
                     return
                 
                 else:
-                    sentences = sent_tokenize(m.message)
+                    # Try to split up sentences. Requires nltk's 'punkt' resource
+                    try:
+                        sentences = sent_tokenize(m.message)
+                    # If 'punkt' is not downloaded, then download it, and retry
+                    except LookupError:
+                        logging.debug("Downloading required punkt resource...")
+                        import nltk
+                        nltk.download('punkt')
+                        logging.debug("Downloaded required punkt resource.")
+                        sentences = sent_tokenize(m.message)
+
                     for sentence in sentences:
                         # Get all seperate words
                         words = sentence.split(" ")
@@ -195,6 +205,7 @@ class MarkovChain:
                     # Adding to the blacklist
                     if self.check_if_our_command(m.message, "!blacklist"):
                         if len(m.message.split()) == 2:
+                            # TODO: Remove newly blacklisted word from the Database
                             word = m.message.split()[1].lower()
                             self.blacklist.append(word)
                             logging.info(f"Added `{word}` to Blacklist.")
