@@ -4,7 +4,7 @@ Twitch Bot for generating messages based on what it learned from chat
 ---
 # Explanation
 
-When the bot has started, it will start listening to chat messages in the channel listed in the settings.txt file. Any chat message not sent by a denied user will be learned from. Whenever someone then requests a message to be generated, a [Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) will be used with the learned data to generate a sentence. <b> Note that the bot is unaware of the meaning of any of its inputs and outputs. This means it can use bad language if it was taught to use bad language by people in chat. You can add a list of banned words it should never learn. Use at your own risk. </b>
+When the bot has started, it will start listening to chat messages in the channel listed in the settings.txt file. Any chat message not sent by a denied user will be learned from. Whenever someone then requests a message to be generated, a [Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) will be used with the learned data to generate a sentence. <b> Note that the bot is unaware of the meaning of any of its inputs and outputs. This means it can use bad language if it was taught to use bad language by people in chat. You can add a list of banned words it should never learn or say. Use at your own risk. </b>
 
 Whenever a message is deleted from chat, it's contents will be unlearned at 5 times the rate a normal message is learned from.
 The bot will avoid learning from commands, or from messages containing links.
@@ -12,12 +12,12 @@ The bot will avoid learning from commands, or from messages containing links.
 ---
 # How it works
 
-### Sentence Parsing
+## Sentence Parsing
 To explain how the bot works, I will provide an example situation with two messages. The messages are:
 <pre><b>Curly fries are the worst kind of fries
 Loud people are the reason I don't go to the movies anymore
 </b></pre>
-Let's start with the first sentence and parse it like the bot will. To do so, we will split up the sentence in sections of size `keyLength + 1` words. As keyLength has been set to 2 in the [Settings](#settings) section, each section has size `3`.
+Let's start with the first sentence and parse it like the bot will. To do so, we will split up the sentence in sections of size `keyLength + 1` words. As keyLength has been set to `2` in the [Settings](#settings) section, each section has size `3`.
 <pre><b>
  Curly fries are the worst kind of fries</b>
 [Curly fries:are]
@@ -67,13 +67,14 @@ Note that the | is considered to be *"or"*. In the case of the bold text above, 
 
 In practice, more frequent phrases will have higher precedence. The more often a phrase is said, the more likely it is to be generated. 
 
-### Generation
+## Generation
 
 When a message is generated with `!generate`, a random start of a sentence is picked from the database of starts of sentences. In our example the randomly picked start is *"Curly fries"*.
 
 Now, in a loop:<br>
-    the output for the input is generated via the grammar, <br>
-    and the input is shifted to remove the first word and add the output to the input.<br>
+- the output for the input is generated via the grammar, <br>
+- and the input is shifted to remove the first word and add the output to the input.<br>
+
 A more programmatic example of this would be this:
 ```python
 # This initial sentence is either from the database for starts of sentences, 
@@ -92,39 +93,43 @@ or
 
 ---
 
-# Usage
-<b>Run the MarkovChainBot.py file</b>
-
-Command:
-<pre><b>!generate</b>
-<b>!g</b></pre>
-Result (for example):
-<pre><b>Curly fries are the reason I don't go to the movies anymore</b></pre>
-Everyone can use it.<br>
-
-Command:
+# Commands
+Chat members can generate chat-like messages using the following commands (Note that they are aliases):
 <pre><b>!generate [words]</b>
 <b>!g [words]</b></pre>
 Example:
-<pre><b>!g That is the</b></pre>
+<pre><b>!g Curly</b></pre>
 Result (for example):
-<pre><b>That is the mouth there?</b></pre>
-The bot will, when given this command, try to complete the start of the sentence which was given.<br> 
-If it cannot, an appropriate error message will be sent to chat.<br>
-Any number of words may be given.<br>
-Everyone can use it.<br>
+<pre><b>Curly fries are the reason I don't go to the movies anymore</b></pre>
+- The bot will, when given this command, try to complete the start of the sentence which was given.<br> 
+  - If it cannot, an appropriate error message will be sent to chat.<br>
+- Any number of words may be given, including none at all.<br>
+- Everyone can use it.<br>
 
 ---
-# Streamer commands<br>
-All of these commands can be whispered to the bot account, or typed in chat.
-
-Commands:
+## Streamer commands
+All of these commands can be whispered to the bot account, or typed in chat.<br>
+To disable the bot from generating messages, while still learning from regular chat messages:
 <pre><b>!disable</b></pre>
-Disables the `!generate` command.
+After disabling the bot, it can be re-enabled using:
 <pre><b>!enable</b></pre>
-Reenables the `!generate` command.
-<pre><b>!setcooldown &lt;seconds&gt;/!setcd &lt;seconds&gt;</b></pre>
-Sets the cooldown between generations to `seconds`.
+Changing the cooldown between generations is possible with one of the following two commands:
+<pre><b>!setcooldown &lt;seconds&gt;</b>
+<b>!setcd &lt;seconds&gt;</b></pre>
+Example:
+<pre>!setcd 30</pre>
+Which sets the cooldown between generations to 30 seconds.
+
+---
+## Moderator commands
+All of these commands must be whispered to the bot account.<br>
+Moderators (and the broadcaster) can modify the blacklist to prevent the bot learning words it shouldn't.<br>
+To add `word` to the blacklist, a moderator can whisper the bot:
+<pre><b>!blacklist word</b></pre>
+Similarly, to remove `word` from the blacklist, a moderator can whisper the bot:
+<pre><b>!whitelist word</b></pre>
+And to check whether `word` is already on the blacklist or not, a moderator can whisper the bot:
+<pre><b>!check word</b></pre>
 
 ---
 
@@ -163,16 +168,18 @@ This bot is controlled by a settings.txt file, which looks like:
 
 I got my real OAuth token from https://twitchapps.com/tmi/.
 
-### Blacklist
+## Blacklist
 
-You may add words to a blacklist by adding them on a separate line in `blacklist.txt`. Each word is case insensitive. By default, this file only contains `<start>` and `<end>`, which are required for the current implementation. 
+You may add words to a blacklist by adding them on a separate line in `blacklist.txt`. Each word is case insensitive. By default, this file only contains `<start>` and `<end>`, which are required for the current implementation.
+
+Words can also be added or removed from the blacklist via whispers, as is described in the [Moderator Command](#moderator-commands) section.
 
 ---
 
 # Requirements
 * [Python 3.6+](https://www.python.org/downloads/)
 * [Module requirements](requirements.txt)<br>
-Install these modules using `pip install -r requirements.txt`
+Install these modules using `pip install -r requirements.txt` in the commandline.
 
 Among these modules is my own [TwitchWebsocket](https://github.com/CubieDev/TwitchWebsocket) wrapper, which makes making a Twitch chat bot a lot easier.
 This repository can be seen as an implementation using this wrapper.
