@@ -25,6 +25,8 @@ class MarkovChain:
         self.link_regex = re.compile("((https?\:\/\/)(www\.)?|(www\.))([A-Za-z0-9]{3,}\.[^\s]*)")
         # Make a translation table for removing punctuation efficiently
         self.punct_trans_table = str.maketrans("", "", string.punctuation)
+        # List of moderators used in blacklist modification, includes broadcaster
+        self.mod_list = []
         self.set_blacklist()
 
         # Fill previously initialised variables with data from the settings.txt file
@@ -56,9 +58,22 @@ class MarkovChain:
         try:
             if m.type == "366":
                 logging.info(f"Successfully joined channel: #{m.channel}")
+                # Get the list of mods used for modifying the blacklist
+                logging.info("Fetching mod list...")
+                self.ws.send_message("/mods")
 
             elif m.type == "NOTICE":
-                logging.info(m.message)
+                # Check whether the NOTICE is a response to our /mods request
+                if m.message.startswith("The moderators of this channel are:"):
+                    string_list = m.message.replace("The moderators of this channel are:", "").strip()
+                    self.mod_list = [m.channel] + string_list.split(", ")
+                    logging.info(f"Fetched mod list. Found {len(self.mod_list) - 1} mods.")
+                elif m.message == "There are no moderators of this channel.":
+                    self.mod_list = [m.channel]
+                    logging.info(f"Fetched mod list. Found no mods.")
+                # If it is not, log this NOTICE
+                else:
+                    logging.info(m.message)
 
             elif m.type in ("PRIVMSG", "WHISPER"):
                 if m.message.startswith("!enable") and self.check_if_streamer(m):
@@ -173,20 +188,43 @@ class MarkovChain:
                     self.db.remove_whisper_ignore(m.user)
                     self.ws.send_whisper(m.user, "You will again be sent whispers. Type !nopm to disable again. ")
 
-                elif m.user.lower() == "cubiedev" and self.check_if_blacklist(m.message):
-                    if len(m.message.split()) == 2: # TODO: Rework this
-                        self.blacklist.append(m.message.split()[1])
-                        self.write_blacklist(self.blacklist)
-                        self.ws.send_whisper(m.user, "Added word to Blacklist.")
-
-                elif m.user.lower() == "cubiedev" and self.check_if_whitelist(m.message):
-                    if len(m.message.split()) == 2: # TODO: Rework this
-                        try:
-                            self.blacklist.remove(m.message.split()[1])
+                # Note that I add my own username to this list to allow me to manage the 
+                # blacklist in channels of my bot in channels I am not modded in.
+                # I may modify this and add a "allowed users" field in the settings file.
+                elif m.user.lower() in self.mod_list + ["cubiedev"]:
+                    # Adding to the blacklist
+                    if self.check_if_our_command(m.message, "!blacklist"):
+                        if len(m.message.split()) == 2:
+                            word = m.message.split()[1].lower()
+                            self.blacklist.append(word)
                             self.write_blacklist(self.blacklist)
-                            self.ws.send_whisper(m.user, "Removed word from Blacklist.")
-                        except ValueError:
-                            self.ws.send_whisper(m.user, "Word was already not in the blacklist.")
+                            self.ws.send_whisper(m.user, "Added word to Blacklist.")
+                        else:
+                            self.ws.send_whisper(m.user, "Expected Format: `!blacklist word` to add `word` to the blacklist")
+
+                    # Removing from the blacklist
+                    elif self.check_if_our_command(m.message, "!whitelist"):
+                        if len(m.message.split()) == 2:
+                            word = m.message.split()[1].lower()
+                            try:
+                                self.blacklist.remove(word)
+                                self.write_blacklist(self.blacklist)
+                                self.ws.send_whisper(m.user, "Removed word from Blacklist.")
+                            except ValueError:
+                                self.ws.send_whisper(m.user, "Word was already not in the blacklist.")
+                        else:
+                            self.ws.send_whisper(m.user, "Expected Format: `!whitelist word` to remove `word` from the blacklist.")
+                    
+                    # Checking whether a word is in the blacklist
+                    elif self.check_if_our_command(m.message, "!check"):
+                        if len(m.message.split()) == 2:
+                            word = m.message.split()[1].lower()
+                            if word in self.blacklist:
+                                self.ws.send_whisper(m.user, "This word is in the Blacklist.")
+                            else:
+                                self.ws.send_whisper(m.user, "This word is not in the Blacklist.")
+                        else:
+                            self.ws.send_whisper(m.user, "Expected Format: `!check word` to check whether `word` is on the blacklist.")
 
             elif m.type == "CLEARMSG":
                 # If a message is deleted, its contents will be unlearned
@@ -290,23 +328,13 @@ class MarkovChain:
                 return True
         return False
 
-    def check_if_our_command(self, message: str, command) -> bool:
+    def check_if_our_command(self, message: str, *commands: "Tuple(str)") -> bool:
         # True if the first "word" of the message is either exactly command, or in the tuple of commands
-        if isinstance(command, str):
-            return message.split()[0] == command
-        return message.split()[0] in command
-
-    def check_if_whitelist(self, message) -> bool:
-        # True if the first "word" of the message is !whitelist
-        return self.check_if_our_command(message, "!whitelist")
-
-    def check_if_blacklist(self, message) -> bool:
-        # True if the first "word" of the message is !blacklist
-        return self.check_if_our_command(message, "!blacklist")
+        return message.split()[0] in commands
 
     def check_if_generate(self, message) -> bool:
         # True if the first "word" of the message is either !generate or !g.
-        return self.check_if_our_command(message, ("!generate", "!g"))
+        return self.check_if_our_command(message, "!generate", "!g")
     
     def check_if_other_command(self, message) -> bool:
         # Don't store commands, except /me
