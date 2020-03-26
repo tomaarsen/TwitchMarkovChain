@@ -197,6 +197,7 @@ class MarkovChain:
                         if len(m.message.split()) == 2:
                             word = m.message.split()[1].lower()
                             self.blacklist.append(word)
+                            logging.info(f"Added `{word}` to Blacklist.")
                             self.write_blacklist(self.blacklist)
                             self.ws.send_whisper(m.user, "Added word to Blacklist.")
                         else:
@@ -208,6 +209,7 @@ class MarkovChain:
                             word = m.message.split()[1].lower()
                             try:
                                 self.blacklist.remove(word)
+                                logging.info(f"Removed `{word}` from Blacklist.")
                                 self.write_blacklist(self.blacklist)
                                 self.ws.send_whisper(m.user, "Removed word from Blacklist.")
                             except ValueError:
