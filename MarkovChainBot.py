@@ -22,7 +22,8 @@ class MarkovChain:
         self.max_sentence_length = 20
         self.prev_message_t = 0
         self._enabled = True
-        self.link_regex = re.compile("((https?\:\/\/)(www\.)?|(www\.))([A-Za-z0-9]{3,}\.[^\s]*)")
+        # This regex should detect similar phrases as links as Twitch does
+        self.link_regex = re.compile("\w+\.[a-z]{2,}")
         # Make a translation table for removing punctuation efficiently
         self.punct_trans_table = str.maketrans("", "", string.punctuation)
         # List of moderators used in blacklist modification, includes broadcaster
