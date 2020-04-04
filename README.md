@@ -4,7 +4,7 @@ Twitch Bot for generating messages based on what it learned from chat
 ---
 # Explanation
 
-When the bot has started, it will start listening to chat messages in the channel listed in the settings.txt file. Any chat message not sent by a denied user will be learned from. Whenever someone then requests a message to be generated, a [Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) will be used with the learned data to generate a sentence. <b> Note that the bot is unaware of the meaning of any of its inputs and outputs. This means it can use bad language if it was taught to use bad language by people in chat. You can add a list of banned words it should never learn or say. Use at your own risk. </b>
+When the bot has started, it will start listening to chat messages in the channel listed in the `settings.txt` file. Any chat message not sent by a denied user will be learned from. Whenever someone then requests a message to be generated, a [Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) will be used with the learned data to generate a sentence. <b> Note that the bot is unaware of the meaning of any of its inputs and outputs. This means it can use bad language if it was taught to use bad language by people in chat. You can add a list of banned words it should never learn or say. Use at your own risk. </b>
 
 Whenever a message is deleted from chat, it's contents will be unlearned at 5 times the rate a normal message is learned from.
 The bot will avoid learning from commands, or from messages containing links.
