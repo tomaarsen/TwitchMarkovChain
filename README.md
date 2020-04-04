@@ -188,6 +188,7 @@ This repository can be seen as an implementation using this wrapper.
 
 # Other Twitch Bots
 
+* [TwitchAIDungeon](https://github.com/CubieDev/TwitchAIDungeon)
 * [TwitchGoogleTranslate](https://github.com/CubieDev/TwitchGoogleTranslate)
 * [TwitchRhymeBot](https://github.com/CubieDev/TwitchRhymeBot)
 * [TwitchCubieBotGUI](https://github.com/CubieDev/TwitchCubieBotGUI)
@@ -202,4 +203,4 @@ This repository can be seen as an implementation using this wrapper.
 * [TwitchMMLevelQueueGUI](https://github.com/CubieDev/TwitchMMLevelQueueGUI) (Mario Maker 2 specific bot)
 * [TwitchPackCounter](https://github.com/CubieDev/TwitchPackCounter) (Streamer specific bot)
 * [TwitchDialCheck](https://github.com/CubieDev/TwitchDialCheck) (Streamer specific bot)
-* [TwitchSendMessage](https://github.com/CubieDev/TwitchSendMessage) (Not designed for non-programmers)
+* [TwitchSendMessage](https://github.com/CubieDev/TwitchSendMessage) (Meant for debugging purposes)
