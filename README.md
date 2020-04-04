@@ -134,8 +134,8 @@ And to check whether `word` is already on the blacklist or not, a moderator can 
 ---
 
 # Settings
-This bot is controlled by a settings.txt file, which looks like:
-```
+This bot is controlled by a `settings.txt` file, which looks like:
+```json
 {
     "Host": "irc.chat.twitch.tv",
     "Port": 6667,
