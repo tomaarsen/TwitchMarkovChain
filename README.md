@@ -190,10 +190,11 @@ This repository can be seen as an implementation using this wrapper.
 
 * [TwitchAIDungeon](https://github.com/CubieDev/TwitchAIDungeon)
 * [TwitchGoogleTranslate](https://github.com/CubieDev/TwitchGoogleTranslate)
-* [TwitchRhymeBot](https://github.com/CubieDev/TwitchRhymeBot)
 * [TwitchCubieBotGUI](https://github.com/CubieDev/TwitchCubieBotGUI)
 * [TwitchCubieBot](https://github.com/CubieDev/TwitchCubieBot)
+* [TwitchRandomRecipe](https://github.com/CubieDev/TwitchRandomRecipe)
 * [TwitchUrbanDictionary](https://github.com/CubieDev/TwitchUrbanDictionary)
+* [TwitchRhymeBot](https://github.com/CubieDev/TwitchRhymeBot)
 * [TwitchWeather](https://github.com/CubieDev/TwitchWeather)
 * [TwitchDeathCounter](https://github.com/CubieDev/TwitchDeathCounter)
 * [TwitchSuggestDinner](https://github.com/CubieDev/TwitchSuggestDinner)
@@ -204,3 +205,4 @@ This repository can be seen as an implementation using this wrapper.
 * [TwitchPackCounter](https://github.com/CubieDev/TwitchPackCounter) (Streamer specific bot)
 * [TwitchDialCheck](https://github.com/CubieDev/TwitchDialCheck) (Streamer specific bot)
 * [TwitchSendMessage](https://github.com/CubieDev/TwitchSendMessage) (Meant for debugging purposes)
+
