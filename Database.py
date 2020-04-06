@@ -94,12 +94,21 @@ class Database:
         
             logger.info("Finished Updating Database to new version.")
 
+        # Resolve typo in Database
+        if self.execute("SELECT * FROM PRAGMA_TABLE_INFO('MarkovGrammarAA') WHERE name='occurances';", fetch=True):
+            logger.info("Updating Database to new version...")
+            for first_char in list(string.ascii_uppercase) + ["_"]:
+                for second_char in list(string.ascii_uppercase) + ["_"]:
+                    self.execute(f"ALTER TABLE MarkovGrammar{first_char}{second_char} RENAME COLUMN occurances TO count;")
+                self.execute(f"ALTER TABLE MarkovStart{first_char} RENAME COLUMN occurances TO count;")
+            logger.info("Finished Updating Database to new version.")
+
         for first_char in list(string.ascii_uppercase) + ["_"]:
             self.add_execute_queue(f"""
             CREATE TABLE IF NOT EXISTS MarkovStart{first_char} (
                 word1 TEXT COLLATE NOCASE, 
                 word2 TEXT COLLATE NOCASE, 
-                occurances INTEGER, 
+                count INTEGER, 
                 PRIMARY KEY (word1 COLLATE BINARY, word2 COLLATE BINARY)
             );
             """)
@@ -109,7 +118,7 @@ class Database:
                     word1 TEXT COLLATE NOCASE,
                     word2 TEXT COLLATE NOCASE,
                     word3 TEXT COLLATE NOCASE,
-                    occurances INTEGER,
+                    count INTEGER,
                     PRIMARY KEY (word1 COLLATE BINARY, word2 COLLATE BINARY, word3 COLLATE BINARY)
                 );
                 """)
@@ -174,34 +183,34 @@ class Database:
 
     def get_next(self, index, *args):
         # Get all items
-        data = self.execute(f"SELECT word3, occurances FROM MarkovGrammar{self.get_suffix(args[0][0][0])}{self.get_suffix(args[0][1][0])} WHERE word1 = ? AND word2 = ?;", args[0], fetch=True)
-        # Return a word picked from the data, using occurances as a weighting factor
+        data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(args[0][0][0])}{self.get_suffix(args[0][1][0])} WHERE word1 = ? AND word2 = ?;", args[0], fetch=True)
+        # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else self.pick_word(data, index)
 
     def get_next_initial(self, index, *args):
         # Get all items
-        data = self.execute(f"SELECT word3, occurances FROM MarkovGrammar{self.get_suffix(args[0][0][0])}{self.get_suffix(args[0][1][0])} WHERE word1 = ? AND word2 = ? AND word3 != '<END>';", args[0], fetch=True)
-        # Return a word picked from the data, using occurances as a weighting factor
+        data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(args[0][0][0])}{self.get_suffix(args[0][1][0])} WHERE word1 = ? AND word2 = ? AND word3 != '<END>';", args[0], fetch=True)
+        # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else self.pick_word(data, index)
     
     """
     def get_next_single(self, index, word):
         # Get all items
-        data = self.execute(f"SELECT word2, occurances FROM MarkovGrammar{self.get_suffix(word[0])} WHERE word1 = ?;", (word,), fetch=True)
-        # Return a word picked from the data, using occurances as a weighting factor
+        data = self.execute(f"SELECT word2, count FROM MarkovGrammar{self.get_suffix(word[0])} WHERE word1 = ?;", (word,), fetch=True)
+        # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else [word] + [self.pick_word(data, index)]
     """
     
     def get_next_single_initial(self, index, word):
         # Get all items
-        data = self.execute(f"SELECT word2, occurances FROM MarkovGrammar{self.get_suffix(word[0])}{random.choices(string.ascii_uppercase + '_', weights=self.word_frequency)[0]} WHERE word1 = ? AND word2 != '<END>';", (word,), fetch=True)
-        # Return a word picked from the data, using occurances as a weighting factor
+        data = self.execute(f"SELECT word2, count FROM MarkovGrammar{self.get_suffix(word[0])}{random.choices(string.ascii_uppercase + '_', weights=self.word_frequency)[0]} WHERE word1 = ? AND word2 != '<END>';", (word,), fetch=True)
+        # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else [word] + [self.pick_word(data, index)]
 
     def get_next_single_start(self, word):
         # Get all items
-        data = self.execute(f"SELECT word2, occurances FROM MarkovStart{self.get_suffix(word[0])} WHERE word1 = ?;", (word,), fetch=True)
-        # Return a word picked from the data, using occurances as a weighting factor
+        data = self.execute(f"SELECT word2, count FROM MarkovStart{self.get_suffix(word[0])} WHERE word1 = ?;", (word,), fetch=True)
+        # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else [word] + [self.pick_word(data)]
 
     def pick_word(self, data, index=0):
@@ -216,7 +225,7 @@ class Database:
         # Get all items
         data = self.execute(f"SELECT * FROM MarkovStart{character};", fetch=True)
         
-        # Add each item "occurances" times
+        # Add each item "count" times
         start_list = [list(tup[:-1]) for tup in data for _ in range(tup[-1])]
         
         # If nothing has ever been said
@@ -230,24 +239,24 @@ class Database:
         # Filter out recursive case.
         if self.check_equal(item):
             return
-        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} (word1, word2, word3, occurances) VALUES (?, ?, ?, coalesce((SELECT occurances + 1 FROM MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY AND word3 = ? COLLATE BINARY), 1))', values=item + item)
+        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} (word1, word2, word3, count) VALUES (?, ?, ?, coalesce((SELECT count + 1 FROM MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY AND word3 = ? COLLATE BINARY), 1))', values=item + item)
         
     def add_start_queue(self, item):
-        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(item[0][0])} (word1, word2, occurances) VALUES (?, ?, coalesce((SELECT occurances + 1 FROM MarkovStart{self.get_suffix(item[0][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY), 1))', values=item + item)
+        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(item[0][0])} (word1, word2, count) VALUES (?, ?, coalesce((SELECT count + 1 FROM MarkovStart{self.get_suffix(item[0][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY), 1))', values=item + item)
     
     def unlearn(self, message):
         words = message.split(" ")
         tuples = [(words[i], words[i+1], words[i+2]) for i in range(0, len(words) - 2)]
         # Unlearn start of sentence from MarkovStart
         if len(words) > 1:
-            # Reduce "occurances" by 5
-            self.add_execute_queue(f'UPDATE MarkovStart{self.get_suffix(words[0][0])} SET occurances = occurances - 5 WHERE word1 = ? AND word2 = ?;', values=(words[0], words[1], ))
-            # Delete if occurances is now less than 0.
-            self.add_execute_queue(f'DELETE FROM MarkovStart{self.get_suffix(words[0][0])} WHERE word1 = ? AND word2 = ? AND occurances <= 0;', values=(words[0], words[1], ))
+            # Reduce "count" by 5
+            self.add_execute_queue(f'UPDATE MarkovStart{self.get_suffix(words[0][0])} SET count = count - 5 WHERE word1 = ? AND word2 = ?;', values=(words[0], words[1], ))
+            # Delete if count is now less than 0.
+            self.add_execute_queue(f'DELETE FROM MarkovStart{self.get_suffix(words[0][0])} WHERE word1 = ? AND word2 = ? AND count <= 0;', values=(words[0], words[1], ))
         # Unlearn all 3 word sections from Grammar
         for (word1, word2, word3) in tuples:
-            # Reduce "occurances" by 5
-            self.add_execute_queue(f'UPDATE MarkovGrammar{self.get_suffix(word1[0])}{self.get_suffix(word2[0])} SET occurances = occurances - 5 WHERE word1 = ? AND word2 = ? AND word3 = ?;', values=(word1, word2, word3, ))
-            # Delete if occurances is now less than 0.
-            self.add_execute_queue(f'DELETE FROM MarkovGrammar{self.get_suffix(word1[0])}{self.get_suffix(word2[0])} WHERE word1 = ? AND word2 = ? AND word3 = ? AND occurances <= 0;', values=(word1, word2, word3, ))
+            # Reduce "count" by 5
+            self.add_execute_queue(f'UPDATE MarkovGrammar{self.get_suffix(word1[0])}{self.get_suffix(word2[0])} SET count = count - 5 WHERE word1 = ? AND word2 = ? AND word3 = ?;', values=(word1, word2, word3, ))
+            # Delete if count is now less than 0.
+            self.add_execute_queue(f'DELETE FROM MarkovGrammar{self.get_suffix(word1[0])}{self.get_suffix(word2[0])} WHERE word1 = ? AND word2 = ? AND word3 = ? AND count <= 0;', values=(word1, word2, word3, ))
         self.execute_commit()
