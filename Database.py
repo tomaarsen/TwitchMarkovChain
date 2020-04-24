@@ -181,15 +181,15 @@ class Database:
         # Check if a list contains of items that are all identical
         return not l or l.count(l[0]) == len(l)
 
-    def get_next(self, index, *args):
+    def get_next(self, index, words):
         # Get all items
-        data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(args[0][0][0])}{self.get_suffix(args[0][1][0])} WHERE word1 = ? AND word2 = ?;", args[0], fetch=True)
+        data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(words[0][0])}{self.get_suffix(words[1][0])} WHERE word1 = ? AND word2 = ?;", words, fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else self.pick_word(data, index)
 
-    def get_next_initial(self, index, *args):
+    def get_next_initial(self, index, words):
         # Get all items
-        data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(args[0][0][0])}{self.get_suffix(args[0][1][0])} WHERE word1 = ? AND word2 = ? AND word3 != '<END>';", args[0], fetch=True)
+        data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(words[0][0])}{self.get_suffix(words[1][0])} WHERE word1 = ? AND word2 = ? AND word3 != '<END>';", words, fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else self.pick_word(data, index)
     
@@ -230,7 +230,7 @@ class Database:
         
         # If nothing has ever been said
         if len(start_list) == 0:
-            return ["There is no learned information yet", ""]
+            return []
 
         # Pick a random starting key from this weighted list
         return random.choice(start_list)

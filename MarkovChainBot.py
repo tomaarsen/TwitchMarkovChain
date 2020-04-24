@@ -284,8 +284,12 @@ class MarkovChain:
         else: # if there are no params
             # Get starting key
             key = self.db.get_start()
-            # Copy this for the sentence
-            sentence = key.copy()
+            if key:
+                # Copy this for the sentence
+                sentence = key.copy()
+            else:
+                # If nothing's ever been said
+                return "There is not enough learned information yet."
         
         for i in range(self.max_sentence_length - self.key_length):
             # Use key to get next word
