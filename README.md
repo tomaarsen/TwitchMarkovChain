@@ -13,11 +13,11 @@ The bot will avoid learning from commands, or from messages containing links.
 # How it works
 
 ## Sentence Parsing
-To explain how the bot works, I will provide an example situation with two messages. The messages are:
+To explain how the bot works, I will provide an example situation with two messages that are posted in Twitch chat. The messages are:
 <pre><b>Curly fries are the worst kind of fries
 Loud people are the reason I don't go to the movies anymore
 </b></pre>
-Let's start with the first sentence and parse it like the bot will. To do so, we will split up the sentence in sections of size `keyLength + 1` words. As keyLength has been set to `2` in the [Settings](#settings) section, each section has size `3`.
+Let's start with the first sentence and parse it like the bot will. To do so, we will split up the sentence in sections of `keyLength + 1` words. As keyLength has been set to `2` in the [Settings](#settings) section, each section has `3` words.
 <pre><b>
  Curly fries are the worst kind of fries</b>
 [Curly fries:are]
@@ -37,10 +37,10 @@ These words are then turned into a variation of a [Grammar](https://en.wikipedia
 "worst kind"  -> "of"
 "kind of"     -> "fries"
 </pre>
-This can be considered a function that, when given input "the worst", will output "kind".<br>
-In order for this to know where sentences begin, we also add the first `keyLength` words to a seperate Database, where a list of possible starts of sentences reside.<br>
+This can be considered a mathematical function that, when given input "the worst", will output "kind".<br>
+In order for the program to know where sentences begin, we also add the first `keyLength` words to a seperate Database table, where a list of possible starts of sentences reside.<br>
 
-This exact same process is applied to the second sentence as well. After doing so, the resulting grammar (and our database) looks like:
+This exact same process is applied to the second sentence as well. After doing so, the resulting grammar (and our corresponding database table ) looks like:
 <pre>
 "Curly fries" -> "are"
 "fries are"   -> "the"
@@ -58,22 +58,26 @@ This exact same process is applied to the second sentence as well. After doing s
 "to the"      -> "movies"
 "the movies"  -> "anymore"
 </pre>
-and in the database for starts of sentences:
+and in the database table for starts of sentences:
 <pre>
 "Curly fries"
 "Loud people"
 </pre>
-Note that the | is considered to be *"or"*. In the case of the bold text above, it could be read as: if the given input is "are the", then the output is *"worst"* **or** *"reason"*.
+Note that the | is considered to be *"or"*. In the case of the bold text above, it could be read as: if the given input is "are the", then the output is either *"worst"* **or** *"reason"*.
 
 In practice, more frequent phrases will have higher precedence. The more often a phrase is said, the more likely it is to be generated. 
 
 ## Generation
 
-When a message is generated with `!generate`, a random start of a sentence is picked from the database of starts of sentences. In our example the randomly picked start is *"Curly fries"*.
+When a message is generated with `!generate`, a random start of a sentence is picked from the database table of starts of sentences. In our example the randomly picked start is *"Curly fries"*.
 
 Now, in a loop:<br>
-- the output for the input is generated via the grammar, <br>
-- and the input is shifted to remove the first word and add the output to the input.<br>
+- The output for the input is generated via the grammar.<br>
+- And the input for the next iteration in the loop is shifted:<br>
+  - Remove the first word from the input.<br>
+  - Add the new output word to the end of the input.<br>
+
+So, the input starts as *"Curly Fries"*. The output for this input is generated via the grammar, which gives us *"are"*. Then, the input is updated. *"Curly"* is removed, and *"are"* is added to the input. The new input for the next iteration will be *"Fries are"* as a result. This process repeats until no more words can be generated, or if a word limit is reached.
 
 A more programmatic example of this would be this:
 ```python
