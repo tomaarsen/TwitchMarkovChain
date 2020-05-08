@@ -140,17 +140,21 @@ class Database:
             self._execute_queue.append([sql, values])
         else:
             self._execute_queue.append([sql])
+        # Commit these executes if there are more than 500 queries
+        if len(self._execute_queue) > 500:
+            self.execute_commit()
     
     def execute_commit(self, fetch=False):
-        with sqlite3.connect(self.db_name) as conn:
-            cur = conn.cursor()
-            cur.execute("begin")
-            for sql in self._execute_queue:
-                cur.execute(*sql)
-            self._execute_queue.clear()
-            cur.execute("commit")
-            if fetch:
-                return cur.fetchall()
+        if self._execute_queue:
+            with sqlite3.connect(self.db_name) as conn:
+                cur = conn.cursor()
+                cur.execute("begin")
+                for sql in self._execute_queue:
+                    cur.execute(*sql)
+                self._execute_queue.clear()
+                cur.execute("commit")
+                if fetch:
+                    return cur.fetchall()
 
     def execute(self, sql, values=None, fetch=False):
         with sqlite3.connect(self.db_name) as conn:

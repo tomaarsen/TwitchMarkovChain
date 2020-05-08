@@ -40,7 +40,7 @@ class MarkovChain:
                                   nick=self.nick,
                                   auth=self.auth,
                                   callback=self.message_handler,
-                                  capability=["commands"],
+                                  capability=["commands", "tags"],
                                   live=True)
         self.ws.start_bot()
 
@@ -131,6 +131,7 @@ class MarkovChain:
                         if not self.db.check_whisper_ignore(m.user):
                             self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - cur_time:0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
                         logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - cur_time:0.2f}s remaining")
+                    return
 
                 # Ignore the message if it is deemed a command
                 elif self.check_if_other_command(m.message):
@@ -139,9 +140,20 @@ class MarkovChain:
                 # Ignore the message if it contains a link.
                 elif self.check_link(m.message):
                     return
-                    
+
+                if "emotes" in m.tags:
+                    # If the list of emotes contains "emotesv2_", then the message contains a bit emote, 
+                    # and we choose not to learn from those messages.
+                    if "emotesv2_" in m.tags["emotes"]:
+                        return
+
+                    # Replace modified emotes with normal versions, 
+                    # as the bot will never have the modified emotes unlocked at the time.
+                    for modifier in self.extract_modifiers(m.tags["emotes"]):
+                        m.message = m.message.replace(modifier, "")
+
                 # Ignore the message if any word in the sentence is on the ban filter
-                elif self.check_filter(m.message):
+                if self.check_filter(m.message):
                     logging.warning(f"Sentence contained blacklisted word or phrase:\"{m.message}\"")
                     return
                 
@@ -185,7 +197,6 @@ class MarkovChain:
                             key.append(word)
                         # Add <END> at the end of the sentence
                         self.db.add_rule_queue(key + ["<END>"])
-                    self.db.execute_commit()
                     
             elif m.type == "WHISPER":
                 # Allow people to whisper the bot to disable or enable whispers.
@@ -320,6 +331,18 @@ class MarkovChain:
         self.prev_message_t = time.time()
 
         return " ".join(sentence)
+
+    def extract_modifiers(self, emotes: str) -> list:
+        output = []
+        try:
+            while emotes:
+                u_index = emotes.index("_")
+                c_index = emotes.index(":", u_index)
+                output.append(emotes[u_index:c_index])
+                emotes = emotes[c_index:]
+        except ValueError:
+            pass
+        return output
 
     def write_blacklist(self, blacklist):
         logging.debug("Writing Blacklist...")
