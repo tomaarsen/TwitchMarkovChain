@@ -17,7 +17,7 @@ To explain how the bot works, I will provide an example situation with two messa
 <pre><b>Curly fries are the worst kind of fries
 Loud people are the reason I don't go to the movies anymore
 </b></pre>
-Let's start with the first sentence and parse it like the bot will. To do so, we will split up the sentence in sections of `keyLength + 1` words. As keyLength has been set to `2` in the [Settings](#settings) section, each section has `3` words.
+Let's start with the first sentence and parse it like the bot will. To do so, we will split up the sentence in sections of `keyLength + 1` words. As `keyLength` has been set to `2` in the [Settings](#settings) section, each section has `3` words.
 <pre><b>
  Curly fries are the worst kind of fries</b>
 [Curly fries:are]
