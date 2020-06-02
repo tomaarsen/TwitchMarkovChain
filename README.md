@@ -40,7 +40,7 @@ These words are then turned into a variation of a [Grammar](https://en.wikipedia
 This can be considered a mathematical function that, when given input "the worst", will output "kind".<br>
 In order for the program to know where sentences begin, we also add the first `keyLength` words to a seperate Database table, where a list of possible starts of sentences reside.<br>
 
-This exact same process is applied to the second sentence as well. After doing so, the resulting grammar (and our corresponding database table ) looks like:
+This exact same process is applied to the second sentence as well. After doing so, the resulting grammar (and our corresponding database table) looks like:
 <pre>
 "Curly fries" -> "are"
 "fries are"   -> "the"
