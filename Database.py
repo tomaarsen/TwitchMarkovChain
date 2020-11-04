@@ -140,8 +140,8 @@ class Database:
             self._execute_queue.append([sql, values])
         else:
             self._execute_queue.append([sql])
-        # Commit these executes if there are more than 500 queries
-        if len(self._execute_queue) > 500:
+        # Commit these executes if there are more than 25 queries
+        if len(self._execute_queue) > 25:
             self.execute_commit()
     
     def execute_commit(self, fetch=False):
