@@ -138,7 +138,7 @@ And to check whether `word` is already on the blacklist or not, a moderator can 
 ---
 
 # Settings
-This bot is controlled by a `settings.txt` file, which looks like:
+This bot is controlled by a `settings.txt` file, which has the following structure:
 ```json
 {
     "Host": "irc.chat.twitch.tv",
@@ -153,7 +153,10 @@ This bot is controlled by a `settings.txt` file, which looks like:
         "Marbiebot"
     ],
     "Cooldown": 20,
-    "KeyLength": 2
+    "KeyLength": 2,
+    "MaxSentenceWordAmount": 25,
+    "HelpMessageTimer": 7200,
+    "AutomaticGenerationTimer": -1
 }
 ```
 
@@ -167,6 +170,9 @@ This bot is controlled by a `settings.txt` file, which looks like:
 | DeniedUsers | The list of bot account who's messages should not be learned from. The bot itself it automatically added to this. | ["StreamElements", "Nightbot", "Moobot", "Marbiebot"] |
 | Cooldown | A cooldown in seconds between successful generations. If a generation fails (eg inputs it can't work with), then the cooldown is not reset and another generation can be done immediately. | 20 |
 | KeyLength | A technical parameter which, in my previous implementation, would affect how closely the output matches the learned inputs. In the current implementation the database structure does not allow this parameter to be changed. Do not change. | 2 | 
+| MaxSentenceWordAmount | The maximum number of words that can be generated. Prevents absurdly long and spammy generations. | 25 | 
+| HelpMessageTimer | The amount of seconds between sending help messages that links to #how-it-works. -1 for no help messages. | 7200 |
+| AutomaticGenerationTimer| The amount of seconds between sending a generation, as if someone wrote `!g`. -1 for no automatic generations. | -1 |
 
 *Note that the example OAuth token is not an actual token, but merely a generated string to give an indication what it might look like.*
 
