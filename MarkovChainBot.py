@@ -156,6 +156,10 @@ class MarkovChain:
                             self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - cur_time:0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
                         logger.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - cur_time:0.2f}s remaining")
                     return
+                
+                # Send help message when requested.
+                elif m.message.startswith(("!ghelp", "!genhelp", "!generatehelp")):
+                    self.send_help_message()
 
                 # Ignore the message if it is deemed a command
                 elif self.check_if_other_command(m.message):
