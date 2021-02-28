@@ -1,13 +1,16 @@
 
-from TwitchWebsocket import TwitchWebsocket
-from nltk.tokenize import sent_tokenize
-import time, logging, re, string
-
 from Log import Log
 Log(__file__)
 
+from TwitchWebsocket import TwitchWebsocket
+from nltk.tokenize import sent_tokenize
+import threading, socket, time, logging, re, string
+
 from Settings import Settings
 from Database import Database
+from Timer import LoopingTimer
+
+logger = logging.getLogger(__name__)
 
 class MarkovChain:
     def __init__(self):
@@ -20,6 +23,8 @@ class MarkovChain:
         self.cooldown = 20
         self.key_length = 2
         self.max_sentence_length = 20
+        self.help_message_timer = 7200
+        self.automatic_generation_timer = -1
         self.prev_message_t = 0
         self._enabled = True
         # This regex should detect similar phrases as links as Twitch does
@@ -34,6 +39,20 @@ class MarkovChain:
         Settings(self)
         self.db = Database(self.chan)
 
+        # Set up daemon Timer to send help messages
+        if self.help_message_timer > 0:
+            if self.help_message_timer < 300:
+                raise ValueError("Value for \"HelpMessageTimer\" in must be at least 300 seconds, or a negative number for no help messages.")
+            t = LoopingTimer(self.help_message_timer, self.send_help_message)
+            t.start()
+        
+        # Set up daemon Timer to send automatic generation messages
+        if self.automatic_generation_timer > 0:
+            if self.automatic_generation_timer < 30:
+                raise ValueError("Value for \"AutomaticGenerationMessage\" in must be at least 30 seconds, or a negative number for no automatic generations.")
+            t = LoopingTimer(self.automatic_generation_timer, self.send_automatic_generation_message)
+            t.start()
+
         self.ws = TwitchWebsocket(host=self.host, 
                                   port=self.port,
                                   chan=self.chan,
@@ -44,7 +63,7 @@ class MarkovChain:
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, cooldown, key_length, max_sentence_length):
+    def set_settings(self, host, port, chan, nick, auth, denied_users, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer):
         self.host = host
         self.port = port
         self.chan = chan
@@ -54,13 +73,15 @@ class MarkovChain:
         self.cooldown = cooldown
         self.key_length = key_length
         self.max_sentence_length = max_sentence_length
+        self.help_message_timer = help_message_timer
+        self.automatic_generation_timer = automatic_generation_timer
 
     def message_handler(self, m):
         try:
             if m.type == "366":
-                logging.info(f"Successfully joined channel: #{m.channel}")
+                logger.info(f"Successfully joined channel: #{m.channel}")
                 # Get the list of mods used for modifying the blacklist
-                logging.info("Fetching mod list...")
+                logger.info("Fetching mod list...")
                 self.ws.send_message("/mods")
 
             elif m.type == "NOTICE":
@@ -68,13 +89,13 @@ class MarkovChain:
                 if m.message.startswith("The moderators of this channel are:"):
                     string_list = m.message.replace("The moderators of this channel are:", "").strip()
                     self.mod_list = [m.channel] + string_list.split(", ")
-                    logging.info(f"Fetched mod list. Found {len(self.mod_list) - 1} mods.")
+                    logger.info(f"Fetched mod list. Found {len(self.mod_list) - 1} mods.")
                 elif m.message == "There are no moderators of this channel.":
                     self.mod_list = [m.channel]
-                    logging.info(f"Fetched mod list. Found no mods.")
+                    logger.info(f"Fetched mod list. Found no mods.")
                 # If it is not, log this NOTICE
                 else:
-                    logging.info(m.message)
+                    logger.info(m.message)
 
             elif m.type in ("PRIVMSG", "WHISPER"):
                 if m.message.startswith("!enable") and self.check_if_streamer(m):
@@ -124,13 +145,16 @@ class MarkovChain:
                         else:
                             params = m.message.split(" ")[1:]
                             # Generate an actual sentence
-                            sentence = self.generate(params)
-                        logging.info(sentence)
+                            sentence, success = self.generate(params)
+                            if success:
+                                # Reset cooldown if a message was actually generated
+                                self.prev_message_t = time.time()
+                        logger.info(sentence)
                         self.ws.send_message(sentence)
                     else:
                         if not self.db.check_whisper_ignore(m.user):
                             self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - cur_time:0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
-                        logging.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - cur_time:0.2f}s remaining")
+                        logger.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - cur_time:0.2f}s remaining")
                     return
 
                 # Ignore the message if it is deemed a command
@@ -154,7 +178,7 @@ class MarkovChain:
 
                 # Ignore the message if any word in the sentence is on the ban filter
                 if self.check_filter(m.message):
-                    logging.warning(f"Sentence contained blacklisted word or phrase:\"{m.message}\"")
+                    logger.warning(f"Sentence contained blacklisted word or phrase:\"{m.message}\"")
                     return
                 
                 else:
@@ -163,10 +187,10 @@ class MarkovChain:
                         sentences = sent_tokenize(m.message)
                     # If 'punkt' is not downloaded, then download it, and retry
                     except LookupError:
-                        logging.debug("Downloading required punkt resource...")
+                        logger.debug("Downloading required punkt resource...")
                         import nltk
                         nltk.download('punkt')
-                        logging.debug("Downloaded required punkt resource.")
+                        logger.debug("Downloaded required punkt resource.")
                         sentences = sent_tokenize(m.message)
 
                     for sentence in sentences:
@@ -201,12 +225,12 @@ class MarkovChain:
             elif m.type == "WHISPER":
                 # Allow people to whisper the bot to disable or enable whispers.
                 if m.message == "!nopm":
-                    logging.debug(f"Adding {m.user} to Do Not Whisper.")
+                    logger.debug(f"Adding {m.user} to Do Not Whisper.")
                     self.db.add_whisper_ignore(m.user)
                     self.ws.send_whisper(m.user, "You will no longer be sent whispers. Type !yespm to reenable. ")
 
                 elif m.message == "!yespm":
-                    logging.debug(f"Removing {m.user} from Do Not Whisper.")
+                    logger.debug(f"Removing {m.user} from Do Not Whisper.")
                     self.db.remove_whisper_ignore(m.user)
                     self.ws.send_whisper(m.user, "You will again be sent whispers. Type !nopm to disable again. ")
 
@@ -220,7 +244,7 @@ class MarkovChain:
                             # TODO: Remove newly blacklisted word from the Database
                             word = m.message.split()[1].lower()
                             self.blacklist.append(word)
-                            logging.info(f"Added `{word}` to Blacklist.")
+                            logger.info(f"Added `{word}` to Blacklist.")
                             self.write_blacklist(self.blacklist)
                             self.ws.send_whisper(m.user, "Added word to Blacklist.")
                         else:
@@ -232,7 +256,7 @@ class MarkovChain:
                             word = m.message.split()[1].lower()
                             try:
                                 self.blacklist.remove(word)
-                                logging.info(f"Removed `{word}` from Blacklist.")
+                                logger.info(f"Removed `{word}` from Blacklist.")
                                 self.write_blacklist(self.blacklist)
                                 self.ws.send_whisper(m.user, "Removed word from Blacklist.")
                             except ValueError:
@@ -260,17 +284,17 @@ class MarkovChain:
                 # TODO: Think of some efficient way to check whether it was our message that got deleted.
                 # If the bot's message was deleted, log this as an error
                 #if m.user.lower() == self.nick.lower():
-                #    logging.error(f"This bot message was deleted: \"{m.message}\"")
+                #    logger.error(f"This bot message was deleted: \"{m.message}\"")
 
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             
-    def generate(self, params):
+    def generate(self, params) -> "Tuple[str, bool]":
 
         # Check for commands or recursion, eg: !generate !generate
         if len(params) > 0:
             if self.check_if_other_command(params[0]):
-                return "You can't make me do commands, you madman!"
+                return "You can't make me do commands, you madman!", False
 
         # Get the starting key and starting sentence.
         # If there is more than 1 param, get the last 2 as the key.
@@ -288,7 +312,7 @@ class MarkovChain:
                 key = self.db.get_next_single_initial(0, params[0])
                 if key == None:
                     # Return a message that this word hasn't been learned yet
-                    return f"I haven't extracted \"{params[0]}\" from chat yet."
+                    return f"I haven't extracted \"{params[0]}\" from chat yet.", False
             # Copy this for the sentence
             sentence = key.copy()
 
@@ -300,7 +324,7 @@ class MarkovChain:
                 sentence = key.copy()
             else:
                 # If nothing's ever been said
-                return "There is not enough learned information yet."
+                return "There is not enough learned information yet.", False
         
         for i in range(self.max_sentence_length - self.key_length):
             # Use key to get next word
@@ -325,12 +349,9 @@ class MarkovChain:
         # Then the params did not result in an actual sentence
         # If so, restart without params
         if len(params) > 0 and params == sentence:
-            return "I haven't yet learned what to do with \"" + " ".join(params[-self.key_length:]) + "\""
+            return "I haven't yet learned what to do with \"" + " ".join(params[-self.key_length:]) + "\"", False
 
-        # Reset cooldown if a message was actually generated
-        self.prev_message_t = time.time()
-
-        return " ".join(sentence)
+        return " ".join(sentence), True
 
     def extract_modifiers(self, emotes: str) -> list:
         output = []
@@ -344,23 +365,48 @@ class MarkovChain:
             pass
         return output
 
-    def write_blacklist(self, blacklist):
-        logging.debug("Writing Blacklist...")
+    def write_blacklist(self, blacklist) -> None:
+        logger.debug("Writing Blacklist...")
         with open("blacklist.txt", "w") as f:
             f.write("\n".join(sorted(blacklist, key=lambda x: len(x), reverse=True)))
-        logging.debug("Written Blacklist.")
+        logger.debug("Written Blacklist.")
 
     def set_blacklist(self) -> None:
-        logging.debug("Loading Blacklist...")
+        logger.debug("Loading Blacklist...")
         try:
             with open("blacklist.txt", "r") as f:
                 self.blacklist = [l.replace("\n", "") for l in f.readlines()]
-                logging.debug("Loaded Blacklist.")
+                logger.debug("Loaded Blacklist.")
         
         except FileNotFoundError:
-            logging.warning("Loading Blacklist Failed!")
+            logger.warning("Loading Blacklist Failed!")
             self.blacklist = ["<start>", "<end>"]
             self.write_blacklist(self.blacklist)
+
+    def send_help_message(self) -> None:
+        # Send a Help message to the connected chat, as long as the bot wasn't disabled
+        if self._enabled:
+            logger.info("Help message sent.")
+            try:
+                self.ws.send_message("Learn how this bot generates sentences here: https://github.com/CubieDev/TwitchMarkovChain#how-it-works")
+            except socket.OSError as error:
+                logger.warning(f"[OSError: {error}] upon sending help message. Ignoring.")
+
+    def send_automatic_generation_message(self) -> None:
+        # Send an automatic generation message to the connected chat, 
+        # as long as the bot wasn't disabled, just like if someone
+        # typed "!g" in chat.
+        if self._enabled:
+            sentence, success = self.generate([])
+            if success:
+                logger.info(sentence)
+                # Try to send a message. Just log a warning on fail
+                try:
+                    self.ws.send_message(sentence)
+                except socket.OSError as error:
+                    logger.warning(f"[OSError: {error}] upon sending automatic generation message. Ignoring.")
+            else:
+                logger.info("Attempted to output automatic generation message, but there is not enough learned information yet.")
 
     def check_filter(self, message) -> bool:
         # Returns True if message contains a banned word.
@@ -369,7 +415,7 @@ class MarkovChain:
                 return True
         return False
 
-    def check_if_our_command(self, message: str, *commands: "Tuple(str)") -> bool:
+    def check_if_our_command(self, message: str, *commands: "Tuple[str]") -> bool:
         # True if the first "word" of the message is either exactly command, or in the tuple of commands
         return message.split()[0] in commands
 

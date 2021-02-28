@@ -12,5 +12,7 @@
     ],
     "Cooldown": 20,
     "KeyLength": 2,
-    "MaxSentenceWordAmount": 25
+    "MaxSentenceWordAmount": 25,
+    "HelpMessageTimer": 7200,
+    "AutomaticGenerationTimer": -1
 }

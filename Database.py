@@ -1,5 +1,5 @@
 
-import sqlite3, logging, random, string, time
+import sqlite3, logging, random, string
 logger = logging.getLogger(__name__)
 
 class Database:

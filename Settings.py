@@ -47,6 +47,14 @@ class Settings:
                     
                     logger.info("Updated Blacklist system to new version.")
 
+                # Automatically update the settings.txt to the new version.
+                if "HelpMessageTimer" not in data or "AutomaticGenerationTimer" not in data:
+                    data["HelpMessageTimer"] = data.get("HelpMessageTimer", 7200) # Default is once per 2 hours
+                    data["AutomaticGenerationTimer"] = data.get("AutomaticGenerationTimer", -1) # Default is never: -1
+                    
+                    with open(Settings.PATH, "w") as f:
+                        f.write(json.dumps(data, indent=4, separators=(",", ": ")))
+
                 bot.set_settings(data["Host"],
                                 data["Port"],
                                 data["Channel"],
@@ -55,7 +63,9 @@ class Settings:
                                 data["DeniedUsers"],
                                 data["Cooldown"],
                                 data["KeyLength"],
-                                data["MaxSentenceWordAmount"])
+                                data["MaxSentenceWordAmount"],
+                                data["HelpMessageTimer"],
+                                data["AutomaticGenerationTimer"])
 
         except ValueError:
             logger.error("Error in settings file.")
@@ -79,7 +89,9 @@ class Settings:
                                 "DeniedUsers": ["StreamElements", "Nightbot", "Moobot", "Marbiebot"],
                                 "Cooldown": 20,
                                 "KeyLength": 2,
-                                "MaxSentenceWordAmount": 25
+                                "MaxSentenceWordAmount": 25,
+                                "HelpMessageTimer": 7200,
+                                "AutomaticGenerationTimer": -1
                             }
             f.write(json.dumps(standard_dict, indent=4, separators=(",", ": ")))
 
