@@ -110,6 +110,13 @@ Result (for example):
 - Any number of words may be given, including none at all.<br>
 - Everyone can use it.<br>
 
+Furthermore, chat members can find a link to [How it works](#how-it-works) by using one of the following commands:
+<pre><b>!ghelp</b>
+<b>!genhelp</b>
+<b>!generatehelp</b></pre>
+The use of this command makes the bot post this message in chat:
+<pre><b>Learn how this bot generates sentences here: https://github.com/CubieDev/TwitchMarkovChain#how-it-works</b></pre>
+
 ---
 ## Streamer commands
 All of these commands can be whispered to the bot account, or typed in chat.<br>
@@ -171,7 +178,7 @@ This bot is controlled by a `settings.txt` file, which has the following structu
 | Cooldown | A cooldown in seconds between successful generations. If a generation fails (eg inputs it can't work with), then the cooldown is not reset and another generation can be done immediately. | 20 |
 | KeyLength | A technical parameter which, in my previous implementation, would affect how closely the output matches the learned inputs. In the current implementation the database structure does not allow this parameter to be changed. Do not change. | 2 | 
 | MaxSentenceWordAmount | The maximum number of words that can be generated. Prevents absurdly long and spammy generations. | 25 | 
-| HelpMessageTimer | The amount of seconds between sending help messages that links to #how-it-works. -1 for no help messages. | 7200 |
+| HelpMessageTimer | The amount of seconds between sending help messages that links to [How it works](#how-it-works). -1 for no help messages. | 7200 |
 | AutomaticGenerationTimer| The amount of seconds between sending a generation, as if someone wrote `!g`. -1 for no automatic generations. | -1 |
 
 *Note that the example OAuth token is not an actual token, but merely a generated string to give an indication what it might look like.*
