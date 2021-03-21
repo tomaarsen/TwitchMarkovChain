@@ -198,7 +198,7 @@ Words can also be added or removed from the blacklist via whispers, as is descri
 * [Module requirements](requirements.txt)<br>
 Install these modules using `pip install -r requirements.txt` in the commandline.
 
-Among these modules is my own [TwitchWebsocket](https://github.com/CubieDev/TwitchWebsocket) wrapper, which makes making a Twitch chat bot a lot easier.
+Among these modules is my own [TwitchWebsocket](https://github.com/tomaarsen/TwitchWebsocket) wrapper, which makes making a Twitch chat bot a lot easier.
 This repository can be seen as an implementation using this wrapper.
 
 ---
