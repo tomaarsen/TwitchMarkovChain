@@ -6,7 +6,7 @@ class Database:
     def __init__(self, channel):
         self.db_name = f"MarkovChain_{channel.replace('#', '').lower()}.db"
         self._execute_queue = []
-
+        
         # TODO: Punctuation insensitivity.
         # My ideas for such an implementation have increased the generation time by ~5x. 
         # This was not worth it for me. I may revisit this at some point.
@@ -242,6 +242,9 @@ class Database:
     def add_rule_queue(self, item):
         # Filter out recursive case.
         if self.check_equal(item):
+            return
+        if "" in item: #prevent adding invalid rules. Ideally this wouldn't trigger, but it seems to happen rarely.
+            logger.info(f"Failed to add item to rules. Item contains empty string. {item}")
             return
         self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} (word1, word2, word3, count) VALUES (?, ?, ?, coalesce((SELECT count + 1 FROM MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY AND word3 = ? COLLATE BINARY), 1))', values=item + item)
         
