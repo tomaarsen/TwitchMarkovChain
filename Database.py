@@ -243,8 +243,8 @@ class Database:
         # Filter out recursive case.
         if self.check_equal(item):
             return
-        if "" in item: #prevent adding invalid rules. Ideally this wouldn't trigger, but it seems to happen rarely.
-            logger.info(f"Failed to add item to rules. Item contains empty string. {item}")
+        if "" in item: # prevent adding invalid rules. Ideally this wouldn't trigger, but it seems to happen rarely.
+            logger.warning(f"Failed to add item to rules. Item contains empty string: {item!r}")
             return
         self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} (word1, word2, word3, count) VALUES (?, ?, ?, coalesce((SELECT count + 1 FROM MarkovGrammar{self.get_suffix(item[0][0])}{self.get_suffix(item[1][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY AND word3 = ? COLLATE BINARY), 1))', values=item + item)
         
