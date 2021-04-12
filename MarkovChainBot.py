@@ -200,8 +200,9 @@ class MarkovChain:
                     for sentence in sentences:
                         # Get all seperate words
                         words = sentence.split(" ")
+                        # Double spaces will lead to invalid rules. We remove empty words here
                         if "" in words:
-                            words = list(filter(lambda x: x != "", words)) #double spaces will lead to invalid rules
+                            words = [word for word in words if word]
                             
                         # If the sentence is too short, ignore it and move on to the next.
                         if len(words) <= self.key_length:
