@@ -67,6 +67,8 @@ Note that the | is considered to be *"or"*. In the case of the bold text above, 
 
 In practice, more frequent phrases will have higher precedence. The more often a phrase is said, the more likely it is to be generated. 
 
+---
+
 ## Generation
 
 When a message is generated with `!generate`, a random start of a sentence is picked from the database table of starts of sentences. In our example the randomly picked start is *"Curly fries"*.
@@ -184,6 +186,8 @@ This bot is controlled by a `settings.txt` file, which has the following structu
 *Note that the example OAuth token is not an actual token, but merely a generated string to give an indication what it might look like.*
 
 I got my real OAuth token from https://twitchapps.com/tmi/.
+
+---
 
 ## Blacklist
 
