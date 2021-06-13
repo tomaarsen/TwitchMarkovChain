@@ -94,7 +94,7 @@ class Settings:
                                 "Cooldown": 20,
                                 "KeyLength": 2,
                                 "MaxSentenceWordAmount": 25,
-                                "HelpMessageTimer": 7200,
+                                "HelpMessageTimer": -1,
                                 "AutomaticGenerationTimer": -1,
                                 "ShouldWhisper": True,
                                 "EnableGenerateCommand": True
