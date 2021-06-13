@@ -63,13 +63,14 @@ class MarkovChain:
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer):
+    def set_settings(self, host, port, chan, nick, auth, denied_users, bot_owner, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer):
         self.host = host
         self.port = port
         self.chan = chan
         self.nick = nick
         self.auth = auth
         self.denied_users = [user.lower() for user in denied_users] + [self.nick.lower()]
+        self.bot_owner = bot_owner.lower()
         self.cooldown = cooldown
         self.key_length = key_length
         self.max_sentence_length = max_sentence_length
@@ -436,7 +437,10 @@ class MarkovChain:
     
     def check_if_streamer(self, m) -> bool:
         # True if the user is the streamer
-        return m.user == m.channel
+        return m.user == m.channel or self.check_if_owner(m)
+
+    def check_if_owner(self, m) -> bool:
+        return m.user == self.bot_owner;
 
     def check_link(self, message) -> bool:
         # True if message contains a link

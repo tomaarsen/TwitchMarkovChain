@@ -246,6 +246,7 @@ This bot is controlled by a `settings.txt` file, which has the following structu
 | MaxSentenceWordAmount    | The maximum number of words that can be generated. Prevents absurdly long and spammy generations.                                                                                                                                            | 25                                                    |
 | HelpMessageTimer         | The amount of seconds between sending help messages that links to [How it works](#how-it-works). -1 for no help messages.                                                                                                                    | 7200                                                  |
 | AutomaticGenerationTimer | The amount of seconds between sending a generation, as if someone wrote `!g`. -1 for no automatic generations.                                                                                                                               | -1                                                    |
+| BotOwner                 | The owner of the bot's twitch username. Gives the owner the same power as the channel owner                                                                                                                                                  | "TestUser"                                            |
 
 _Note that the example OAuth token is not an actual token, but merely a generated string to give an indication what it might look like._
 
