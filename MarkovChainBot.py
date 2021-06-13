@@ -102,17 +102,19 @@ class MarkovChain:
             elif m.type in ("PRIVMSG", "WHISPER"):
                 if m.message.startswith("!enable") and self.check_if_streamer(m):
                     if self._enabled:
-                        self.send_whisper(m.user, "The !generate is already enabled.")
+                        self.send_whisper(m.user, "The generate command is already enabled.")
                     else:
-                        self.send_whisper(m.user, "Users can now !generate message again.")
+                        self.send_whisper(m.user, "Users can now use generate command again.")
                         self._enabled = True
+                        logger.info("Users can now use generate command again.")
 
                 elif m.message.startswith("!disable") and self.check_if_streamer(m):
                     if self._enabled:
-                        self.send_whisper(m.user, "Users can now no longer use !generate.")
+                        self.send_whisper(m.user, "Users can now no longer use generate command.")
                         self._enabled = False
+                        logger.info("Users can now no longer use generate command.")
                     else:
-                        self.send_whisper(m.user, "The !generate is already disabled.")
+                        self.send_whisper(m.user, "The generate command is already disabled.")
 
                 elif m.message.startswith(("!setcooldown", "!setcd")) and self.check_if_streamer(m):
                     split_message = m.message.split(" ")
