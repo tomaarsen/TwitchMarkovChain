@@ -68,6 +68,7 @@ class Settings:
                                 data["HelpMessageTimer"],
                                 data["AutomaticGenerationTimer"],
                                 data["ShouldWhisper"],
+                                data["EnableGenerateCommand"])
 
         except ValueError:
             logger.error("Error in settings file.")
@@ -96,6 +97,7 @@ class Settings:
                                 "HelpMessageTimer": 7200,
                                 "AutomaticGenerationTimer": -1,
                                 "ShouldWhisper": True,
+                                "EnableGenerateCommand": True
                             }
             f.write(json.dumps(standard_dict, indent=4, separators=(",", ": ")))
 

@@ -63,7 +63,7 @@ class MarkovChain:
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, bot_owner, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer, should_whisper):
+    def set_settings(self, host, port, chan, nick, auth, denied_users, bot_owner, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer, should_whisper, enable_generate_command):
         self.host = host
         self.port = port
         self.chan = chan
@@ -77,6 +77,7 @@ class MarkovChain:
         self.help_message_timer = help_message_timer
         self.automatic_generation_timer = automatic_generation_timer
         self.should_whisper = should_whisper
+        self.enable_generate_command = enable_generate_command
 
     def message_handler(self, m):
         try:
@@ -137,6 +138,9 @@ class MarkovChain:
                     return
                 
                 if self.check_if_generate(m.message):
+                    if not self.enable_generate_command and not self.check_if_streamer(m):
+                        return
+
                     if not self._enabled:
                         if not self.db.check_whisper_ignore(m.user):
                             self.send_whisper(m.user, "The !generate has been turned off. !nopm to stop me from whispering you.")
