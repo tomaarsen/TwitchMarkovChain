@@ -63,7 +63,7 @@ class MarkovChain:
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, bot_owner, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer):
+    def set_settings(self, host, port, chan, nick, auth, denied_users, bot_owner, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer, should_whisper):
         self.host = host
         self.port = port
         self.chan = chan
@@ -76,6 +76,7 @@ class MarkovChain:
         self.max_sentence_length = max_sentence_length
         self.help_message_timer = help_message_timer
         self.automatic_generation_timer = automatic_generation_timer
+        self.should_whisper = should_whisper
 
     def message_handler(self, m):
         try:
@@ -101,17 +102,17 @@ class MarkovChain:
             elif m.type in ("PRIVMSG", "WHISPER"):
                 if m.message.startswith("!enable") and self.check_if_streamer(m):
                     if self._enabled:
-                        self.ws.send_whisper(m.user, "The !generate is already enabled.")
+                        self.send_whisper(m.user, "The !generate is already enabled.")
                     else:
-                        self.ws.send_whisper(m.user, "Users can now !generate message again.")
+                        self.send_whisper(m.user, "Users can now !generate message again.")
                         self._enabled = True
 
                 elif m.message.startswith("!disable") and self.check_if_streamer(m):
                     if self._enabled:
-                        self.ws.send_whisper(m.user, "Users can now no longer use !generate.")
+                        self.send_whisper(m.user, "Users can now no longer use !generate.")
                         self._enabled = False
                     else:
-                        self.ws.send_whisper(m.user, "The !generate is already disabled.")
+                        self.send_whisper(m.user, "The !generate is already disabled.")
 
                 elif m.message.startswith(("!setcooldown", "!setcd")) and self.check_if_streamer(m):
                     split_message = m.message.split(" ")
@@ -119,13 +120,13 @@ class MarkovChain:
                         try:
                             cooldown = int(split_message[1])
                         except ValueError:
-                            self.ws.send_whisper(m.user, f"The parameter must be an integer amount, eg: !setcd 30")
+                            self.send_whisper(m.user, f"The parameter must be an integer amount, eg: !setcd 30")
                             return
                         self.cooldown = cooldown
                         Settings.update_cooldown(cooldown)
-                        self.ws.send_whisper(m.user, f"The !generate cooldown has been set to {cooldown} seconds.")
+                        self.send_whisper(m.user, f"The !generate cooldown has been set to {cooldown} seconds.")
                     else:
-                        self.ws.send_whisper(m.user, f"Please add exactly 1 integer parameter, eg: !setcd 30.")
+                        self.send_whisper(m.user, f"Please add exactly 1 integer parameter, eg: !setcd 30.")
 
             if m.type == "PRIVMSG":
 
@@ -136,7 +137,7 @@ class MarkovChain:
                 if self.check_if_generate(m.message):
                     if not self._enabled:
                         if not self.db.check_whisper_ignore(m.user):
-                            self.ws.send_whisper(m.user, "The !generate has been turned off. !nopm to stop me from whispering you.")
+                            self.send_whisper(m.user, "The !generate has been turned off. !nopm to stop me from whispering you.")
                         return
 
                     cur_time = time.time()
@@ -154,7 +155,7 @@ class MarkovChain:
                         self.ws.send_message(sentence)
                     else:
                         if not self.db.check_whisper_ignore(m.user):
-                            self.ws.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - cur_time:0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
+                            self.send_whisper(m.user, f"Cooldown hit: {self.prev_message_t + self.cooldown - cur_time:0.2f} out of {self.cooldown:.0f}s remaining. !nopm to stop these cooldown pm's.")
                         logger.info(f"Cooldown hit with {self.prev_message_t + self.cooldown - cur_time:0.2f}s remaining")
                     return
                 
@@ -235,12 +236,12 @@ class MarkovChain:
                 if m.message == "!nopm":
                     logger.debug(f"Adding {m.user} to Do Not Whisper.")
                     self.db.add_whisper_ignore(m.user)
-                    self.ws.send_whisper(m.user, "You will no longer be sent whispers. Type !yespm to reenable. ")
+                    self.send_whisper(m.user, "You will no longer be sent whispers. Type !yespm to reenable. ")
 
                 elif m.message == "!yespm":
                     logger.debug(f"Removing {m.user} from Do Not Whisper.")
                     self.db.remove_whisper_ignore(m.user)
-                    self.ws.send_whisper(m.user, "You will again be sent whispers. Type !nopm to disable again. ")
+                    self.send_whisper(m.user, "You will again be sent whispers. Type !nopm to disable again. ")
 
                 # Note that I add my own username to this list to allow me to manage the 
                 # blacklist in channels of my bot in channels I am not modded in.
@@ -254,9 +255,9 @@ class MarkovChain:
                             self.blacklist.append(word)
                             logger.info(f"Added `{word}` to Blacklist.")
                             self.write_blacklist(self.blacklist)
-                            self.ws.send_whisper(m.user, "Added word to Blacklist.")
+                            self.send_whisper(m.user, "Added word to Blacklist.")
                         else:
-                            self.ws.send_whisper(m.user, "Expected Format: `!blacklist word` to add `word` to the blacklist")
+                            self.send_whisper(m.user, "Expected Format: `!blacklist word` to add `word` to the blacklist")
 
                     # Removing from the blacklist
                     elif self.check_if_our_command(m.message, "!whitelist"):
@@ -266,22 +267,22 @@ class MarkovChain:
                                 self.blacklist.remove(word)
                                 logger.info(f"Removed `{word}` from Blacklist.")
                                 self.write_blacklist(self.blacklist)
-                                self.ws.send_whisper(m.user, "Removed word from Blacklist.")
+                                self.send_whisper(m.user, "Removed word from Blacklist.")
                             except ValueError:
-                                self.ws.send_whisper(m.user, "Word was already not in the blacklist.")
+                                self.send_whisper(m.user, "Word was already not in the blacklist.")
                         else:
-                            self.ws.send_whisper(m.user, "Expected Format: `!whitelist word` to remove `word` from the blacklist.")
+                            self.send_whisper(m.user, "Expected Format: `!whitelist word` to remove `word` from the blacklist.")
                     
                     # Checking whether a word is in the blacklist
                     elif self.check_if_our_command(m.message, "!check"):
                         if len(m.message.split()) == 2:
                             word = m.message.split()[1].lower()
                             if word in self.blacklist:
-                                self.ws.send_whisper(m.user, "This word is in the Blacklist.")
+                                self.send_whisper(m.user, "This word is in the Blacklist.")
                             else:
-                                self.ws.send_whisper(m.user, "This word is not in the Blacklist.")
+                                self.send_whisper(m.user, "This word is not in the Blacklist.")
                         else:
-                            self.ws.send_whisper(m.user, "Expected Format: `!check word` to check whether `word` is on the blacklist.")
+                            self.send_whisper(m.user, "Expected Format: `!check word` to check whether `word` is on the blacklist.")
 
             elif m.type == "CLEARMSG":
                 # If a message is deleted, its contents will be unlearned
@@ -415,6 +416,11 @@ class MarkovChain:
                     logger.warning(f"[OSError: {error}] upon sending automatic generation message. Ignoring.")
             else:
                 logger.info("Attempted to output automatic generation message, but there is not enough learned information yet.")
+
+    def send_whisper(self, user, message):
+        if self.should_whisper:
+            self.ws.send_whisper(user, message)
+        return
 
     def check_filter(self, message) -> bool:
         # Returns True if message contains a banned word.

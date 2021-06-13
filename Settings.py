@@ -66,7 +66,8 @@ class Settings:
                                 data["KeyLength"],
                                 data["MaxSentenceWordAmount"],
                                 data["HelpMessageTimer"],
-                                data["AutomaticGenerationTimer"])
+                                data["AutomaticGenerationTimer"],
+                                data["ShouldWhisper"],
 
         except ValueError:
             logger.error("Error in settings file.")
@@ -93,7 +94,8 @@ class Settings:
                                 "KeyLength": 2,
                                 "MaxSentenceWordAmount": 25,
                                 "HelpMessageTimer": 7200,
-                                "AutomaticGenerationTimer": -1
+                                "AutomaticGenerationTimer": -1,
+                                "ShouldWhisper": True,
                             }
             f.write(json.dumps(standard_dict, indent=4, separators=(",", ": ")))
 
