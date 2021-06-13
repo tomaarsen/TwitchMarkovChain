@@ -140,5 +140,9 @@ cython_debug/
 # IDE
 .vscode/
 
+# Settings
+# This file should be automatically generated at launch if not created already
+settings.json
+
 # Database files
 *.db

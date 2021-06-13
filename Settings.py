@@ -3,9 +3,9 @@ import json, os, logging
 logger = logging.getLogger(__name__)
 
 class Settings:
-    """ Loads data from settings.txt into the bot """
+    """ Loads data from settings.json into the bot """
     
-    PATH = os.path.join(os.getcwd(), "settings.txt")
+    PATH = os.path.join(os.getcwd(), "settings.json")
     
     def __init__(self, bot):
         try:
@@ -80,7 +80,7 @@ class Settings:
     
     @staticmethod
     def write_default_settings_file():
-        # If the file is missing, create a standardised settings.txt file
+        # If the file is missing, create a standardised settings.json file
         # With all parameters required.
         with open(Settings.PATH, "w") as f:
             standard_dict = {
