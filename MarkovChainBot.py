@@ -196,14 +196,14 @@ class MarkovChain:
                 else:
                     # Try to split up sentences. Requires nltk's 'punkt' resource
                     try:
-                        sentences = sent_tokenize(m.message)
+                        sentences = sent_tokenize(m.message.strip())
                     # If 'punkt' is not downloaded, then download it, and retry
                     except LookupError:
                         logger.debug("Downloading required punkt resource...")
                         import nltk
                         nltk.download('punkt')
                         logger.debug("Downloaded required punkt resource.")
-                        sentences = sent_tokenize(m.message)
+                        sentences = sent_tokenize(m.message.strip())
 
                     for sentence in sentences:
                         # Get all seperate words
