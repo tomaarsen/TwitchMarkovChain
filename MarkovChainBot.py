@@ -5,7 +5,7 @@ Log(__file__)
 
 from TwitchWebsocket import Message, TwitchWebsocket
 from nltk.tokenize import sent_tokenize
-import threading, socket, time, logging, re, string
+import socket, time, logging, re, string
 
 from Settings import Settings
 from Database import Database
