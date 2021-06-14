@@ -24,7 +24,7 @@ class MarkovChain:
         self.cooldown = 20
         self.key_length = 2
         self.max_sentence_length = 20
-        self.help_message_timer = 7200
+        self.help_message_timer = -1
         self.automatic_generation_timer = -1
         self.prev_message_t = 0
         self._enabled = True
