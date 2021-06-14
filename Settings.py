@@ -1,8 +1,25 @@
 import json, os, logging
+from typing import List, TypedDict
 
 from MarkovChainBot import MarkovChain
 
 logger = logging.getLogger(__name__)
+
+class SettingsData(TypedDict):
+    Host: str
+    Port: int
+    Channel: str
+    Nickname: str
+    Authentication: str
+    DeniedUsers: List[str]
+    BotOwner: str
+    Cooldown: int
+    KeyLength: int
+    MaxSentenceWordAmount: int
+    HelpMessageTimer: int
+    AutomaticGenerationTimer: int
+    ShouldWhisper: bool
+    EnableGenerateCommand: bool
 
 class Settings:
     """ Loads data from settings.json into the bot """
@@ -15,7 +32,7 @@ class Settings:
             # And pass the data to the Bot class instance if this succeeds.
             with open(Settings.PATH, "r") as f:
                 settings = f.read()
-                data = json.loads(settings)
+                data: SettingsData = json.loads(settings)
                 # "BannedWords" is only a key in the settings in older versions.
                 # We moved to a separate file for blacklisted words.
                 if "BannedWords" in data:
@@ -85,7 +102,7 @@ class Settings:
         # If the file is missing, create a standardised settings.json file
         # With all parameters required.
         with open(Settings.PATH, "w") as f:
-            standard_dict = {
+            standard_dict: SettingsData = {
                                 "Host": "irc.chat.twitch.tv",
                                 "Port": 6667,
                                 "Channel": "#<channel>",
