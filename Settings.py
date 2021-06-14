@@ -72,20 +72,7 @@ class Settings:
                     with open(Settings.PATH, "w") as f:
                         f.write(json.dumps(data, indent=4, separators=(",", ": ")))
 
-                bot.set_settings(data["Host"],
-                                data["Port"],
-                                data["Channel"],
-                                data["Nickname"],
-                                data["Authentication"],
-                                data["DeniedUsers"],
-                                data["BotOwner"],
-                                data["Cooldown"],
-                                data["KeyLength"],
-                                data["MaxSentenceWordAmount"],
-                                data["HelpMessageTimer"],
-                                data["AutomaticGenerationTimer"],
-                                data["ShouldWhisper"],
-                                data["EnableGenerateCommand"])
+                bot.set_settings(data)
 
         except ValueError:
             logger.error("Error in settings file.")

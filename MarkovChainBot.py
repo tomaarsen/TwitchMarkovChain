@@ -7,7 +7,7 @@ from TwitchWebsocket import Message, TwitchWebsocket
 from nltk.tokenize import sent_tokenize
 import socket, time, logging, re, string
 
-from Settings import Settings
+from Settings import Settings, SettingsData
 from Database import Database
 from Timer import LoopingTimer
 
@@ -64,21 +64,21 @@ class MarkovChain:
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, host, port, chan, nick, auth, denied_users, bot_owner, cooldown, key_length, max_sentence_length, help_message_timer, automatic_generation_timer, should_whisper, enable_generate_command):
-        self.host = host
-        self.port = port
-        self.chan = chan
-        self.nick = nick
-        self.auth = auth
-        self.denied_users = [user.lower() for user in denied_users] + [self.nick.lower()]
-        self.bot_owner = bot_owner.lower()
-        self.cooldown = cooldown
-        self.key_length = key_length
-        self.max_sentence_length = max_sentence_length
-        self.help_message_timer = help_message_timer
-        self.automatic_generation_timer = automatic_generation_timer
-        self.should_whisper = should_whisper
-        self.enable_generate_command = enable_generate_command
+    def set_settings(self, data: SettingsData):
+        self.host = data["Host"]
+        self.port = data["Port"]
+        self.chan = data["Channel"]
+        self.nick = data["Nickname"]
+        self.auth = data["Authentication"]
+        self.denied_users = [user.lower() for user in data["DeniedUsers"]] + [self.nick.lower()]
+        self.bot_owner = data["BotOwner"].lower()
+        self.cooldown = data["Cooldown"]
+        self.key_length = data["KeyLength"]
+        self.max_sentence_length = data["MaxSentenceWordAmount"]
+        self.help_message_timer = data["HelpMessageTimer"]
+        self.automatic_generation_timer = data["AutomaticGenerationTimer"]
+        self.should_whisper = data["ShouldWhisper"]
+        self.enable_generate_command = data["EnableGenerateCommand"]
 
     def message_handler(self, m: Message):
         try:
