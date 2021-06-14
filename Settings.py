@@ -1,8 +1,6 @@
 import json, os, logging
 from typing import List, TypedDict
 
-from MarkovChainBot import MarkovChain
-
 logger = logging.getLogger(__name__)
 
 class SettingsData(TypedDict):
@@ -26,7 +24,7 @@ class Settings:
     
     PATH = os.path.join(os.getcwd(), "settings.json")
     
-    def __init__(self, bot: MarkovChain):
+    def __init__(self, bot):
         try:
             # Try to load the file using json.
             # And pass the data to the Bot class instance if this succeeds.
