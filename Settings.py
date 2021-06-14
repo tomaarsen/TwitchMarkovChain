@@ -1,5 +1,7 @@
-
 import json, os, logging
+
+from MarkovChainBot import MarkovChain
+
 logger = logging.getLogger(__name__)
 
 class Settings:
@@ -7,7 +9,7 @@ class Settings:
     
     PATH = os.path.join(os.getcwd(), "settings.json")
     
-    def __init__(self, bot):
+    def __init__(self, bot: MarkovChain):
         try:
             # Try to load the file using json.
             # And pass the data to the Bot class instance if this succeeds.
@@ -102,7 +104,7 @@ class Settings:
             f.write(json.dumps(standard_dict, indent=4, separators=(",", ": ")))
 
     @staticmethod
-    def update_cooldown(cooldown):
+    def update_cooldown(cooldown: int):
         with open(Settings.PATH, "r") as f:
             settings = f.read()
             data = json.loads(settings)

@@ -1,8 +1,9 @@
 
+from typing import List, Tuple
 from Log import Log
 Log(__file__)
 
-from TwitchWebsocket import TwitchWebsocket
+from TwitchWebsocket import Message, TwitchWebsocket
 from nltk.tokenize import sent_tokenize
 import threading, socket, time, logging, re, string
 
@@ -79,7 +80,7 @@ class MarkovChain:
         self.should_whisper = should_whisper
         self.enable_generate_command = enable_generate_command
 
-    def message_handler(self, m):
+    def message_handler(self, m: Message):
         try:
             if m.type == "366":
                 logger.info(f"Successfully joined channel: #{m.channel}")
@@ -304,7 +305,7 @@ class MarkovChain:
         except Exception as e:
             logger.exception(e)
             
-    def generate(self, params) -> "Tuple[str, bool]":
+    def generate(self, params: List[str]) -> "Tuple[str, bool]":
 
         # Check for commands or recursion, eg: !generate !generate
         if len(params) > 0:
@@ -380,7 +381,7 @@ class MarkovChain:
             pass
         return output
 
-    def write_blacklist(self, blacklist) -> None:
+    def write_blacklist(self, blacklist: List[str]) -> None:
         logger.debug("Writing Blacklist...")
         with open("blacklist.txt", "w") as f:
             f.write("\n".join(sorted(blacklist, key=lambda x: len(x), reverse=True)))
@@ -423,12 +424,12 @@ class MarkovChain:
             else:
                 logger.info("Attempted to output automatic generation message, but there is not enough learned information yet.")
 
-    def send_whisper(self, user, message):
+    def send_whisper(self, user: str, message: str):
         if self.should_whisper:
             self.ws.send_whisper(user, message)
         return
 
-    def check_filter(self, message) -> bool:
+    def check_filter(self, message: str) -> bool:
         # Returns True if message contains a banned word.
         for word in message.translate(self.punct_trans_table).lower().split():
             if word in self.blacklist:
@@ -439,22 +440,22 @@ class MarkovChain:
         # True if the first "word" of the message is either exactly command, or in the tuple of commands
         return message.split()[0] in commands
 
-    def check_if_generate(self, message) -> bool:
+    def check_if_generate(self, message: str) -> bool:
         # True if the first "word" of the message is either !generate or !g.
         return self.check_if_our_command(message, "!generate", "!g")
     
-    def check_if_other_command(self, message) -> bool:
+    def check_if_other_command(self, message: str) -> bool:
         # Don't store commands, except /me
         return message.startswith(("!", "/", ".")) and not message.startswith("/me")
     
-    def check_if_streamer(self, m) -> bool:
+    def check_if_streamer(self, m: Message) -> bool:
         # True if the user is the streamer
         return m.user == m.channel or self.check_if_owner(m)
 
-    def check_if_owner(self, m) -> bool:
+    def check_if_owner(self, m: Message) -> bool:
         return m.user == self.bot_owner;
 
-    def check_link(self, message) -> bool:
+    def check_link(self, message: str) -> bool:
         # True if message contains a link
         return self.link_regex.search(message)
 
