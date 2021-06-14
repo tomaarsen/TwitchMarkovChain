@@ -24,6 +24,7 @@ class MarkovChain:
         self.cooldown = 20
         self.key_length = 2
         self.max_sentence_length = 20
+        self.min_sentence_length = -1
         self.help_message_timer = -1
         self.automatic_generation_timer = -1
         self.prev_message_t = 0
@@ -75,6 +76,7 @@ class MarkovChain:
         self.cooldown = data["Cooldown"]
         self.key_length = data["KeyLength"]
         self.max_sentence_length = data["MaxSentenceWordAmount"]
+        self.min_sentence_length = data["MinSentenceWordAmount"]
         self.help_message_timer = data["HelpMessageTimer"]
         self.automatic_generation_timer = data["AutomaticGenerationTimer"]
         self.should_whisper = data["ShouldWhisper"]
@@ -350,9 +352,14 @@ class MarkovChain:
             else:
                 word = self.db.get_next(i, key)
 
-            # Return if next word is the END
             if word == "<END>" or word == None:
-                break
+                if i < self.min_sentence_length:
+                    key = self.db.get_start()
+                    for entry in key:
+                        sentence.append(entry)
+                    word = self.db.get_next_initial(i, key)
+                else:
+                    break
 
             # Otherwise add the word
             sentence.append(word)

@@ -14,6 +14,7 @@ class SettingsData(TypedDict):
     Cooldown: int
     KeyLength: int
     MaxSentenceWordAmount: int
+    MinSentenceWordAmount: int
     HelpMessageTimer: int
     AutomaticGenerationTimer: int
     ShouldWhisper: bool
@@ -98,6 +99,7 @@ class Settings:
                                 "Cooldown": 20,
                                 "KeyLength": 2,
                                 "MaxSentenceWordAmount": 25,
+                                "MinSentenceWordAmount": -1,
                                 "HelpMessageTimer": -1,
                                 "AutomaticGenerationTimer": -1,
                                 "ShouldWhisper": True,
