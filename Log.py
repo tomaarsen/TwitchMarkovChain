@@ -2,7 +2,7 @@ import logging, os, json
 import logging.config
 
 class Log():
-    def __init__(self, main_file):
+    def __init__(self, main_file: str):
         # Dynamically change size set up for name in the logger
         this_file = os.path.basename(main_file)
         

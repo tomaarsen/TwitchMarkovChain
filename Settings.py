@@ -1,11 +1,29 @@
-
 import json, os, logging
+from typing import List, TypedDict
+
 logger = logging.getLogger(__name__)
 
+class SettingsData(TypedDict):
+    Host: str
+    Port: int
+    Channel: str
+    Nickname: str
+    Authentication: str
+    DeniedUsers: List[str]
+    BotOwner: str
+    Cooldown: int
+    KeyLength: int
+    MaxSentenceWordAmount: int
+    MinSentenceWordAmount: int
+    HelpMessageTimer: int
+    AutomaticGenerationTimer: int
+    ShouldWhisper: bool
+    EnableGenerateCommand: bool
+
 class Settings:
-    """ Loads data from settings.txt into the bot """
+    """ Loads data from settings.json into the bot """
     
-    PATH = os.path.join(os.getcwd(), "settings.txt")
+    PATH = os.path.join(os.getcwd(), "settings.json")
     
     def __init__(self, bot):
         try:
@@ -13,7 +31,7 @@ class Settings:
             # And pass the data to the Bot class instance if this succeeds.
             with open(Settings.PATH, "r") as f:
                 settings = f.read()
-                data = json.loads(settings)
+                data: SettingsData = json.loads(settings)
                 # "BannedWords" is only a key in the settings in older versions.
                 # We moved to a separate file for blacklisted words.
                 if "BannedWords" in data:
@@ -55,17 +73,7 @@ class Settings:
                     with open(Settings.PATH, "w") as f:
                         f.write(json.dumps(data, indent=4, separators=(",", ": ")))
 
-                bot.set_settings(data["Host"],
-                                data["Port"],
-                                data["Channel"],
-                                data["Nickname"],
-                                data["Authentication"],
-                                data["DeniedUsers"],
-                                data["Cooldown"],
-                                data["KeyLength"],
-                                data["MaxSentenceWordAmount"],
-                                data["HelpMessageTimer"],
-                                data["AutomaticGenerationTimer"])
+                bot.set_settings(data)
 
         except ValueError:
             logger.error("Error in settings file.")
@@ -77,26 +85,30 @@ class Settings:
     
     @staticmethod
     def write_default_settings_file():
-        # If the file is missing, create a standardised settings.txt file
+        # If the file is missing, create a standardised settings.json file
         # With all parameters required.
         with open(Settings.PATH, "w") as f:
-            standard_dict = {
+            standard_dict: SettingsData = {
                                 "Host": "irc.chat.twitch.tv",
                                 "Port": 6667,
                                 "Channel": "#<channel>",
                                 "Nickname": "<name>",
                                 "Authentication": "oauth:<auth>",
                                 "DeniedUsers": ["StreamElements", "Nightbot", "Moobot", "Marbiebot"],
+                                "BotOwner": "",
                                 "Cooldown": 20,
                                 "KeyLength": 2,
                                 "MaxSentenceWordAmount": 25,
-                                "HelpMessageTimer": 7200,
-                                "AutomaticGenerationTimer": -1
+                                "MinSentenceWordAmount": -1,
+                                "HelpMessageTimer": -1,
+                                "AutomaticGenerationTimer": -1,
+                                "ShouldWhisper": True,
+                                "EnableGenerateCommand": True
                             }
             f.write(json.dumps(standard_dict, indent=4, separators=(",", ": ")))
 
     @staticmethod
-    def update_cooldown(cooldown):
+    def update_cooldown(cooldown: int):
         with open(Settings.PATH, "r") as f:
             settings = f.read()
             data = json.loads(settings)

@@ -3,7 +3,7 @@ import sqlite3, logging, random, string
 logger = logging.getLogger(__name__)
 
 class Database:
-    def __init__(self, channel):
+    def __init__(self, channel: str):
         self.db_name = f"MarkovChain_{channel.replace('#', '').lower()}.db"
         self._execute_queue = []
         
@@ -135,7 +135,7 @@ class Database:
         # Index 0 is for "A", 1 for "B", and 26 for everything else
         self.word_frequency = [11.6, 4.4, 5.2, 3.1, 2.8, 4, 1.6, 4.2, 7.3, 0.5, 0.8, 2.4, 3.8, 2.2, 7.6, 4.3, 0.2, 2.8, 6.6, 15.9, 1.1, 0.8, 5.5, 0.1, 0.7, 0.1, 0.5]
     
-    def add_execute_queue(self, sql, values=None):
+    def add_execute_queue(self, sql: str, values = None):
         if values is not None:
             self._execute_queue.append([sql, values])
         else:
@@ -144,7 +144,7 @@ class Database:
         if len(self._execute_queue) > 25:
             self.execute_commit()
     
-    def execute_commit(self, fetch=False):
+    def execute_commit(self, fetch: bool = False):
         if self._execute_queue:
             with sqlite3.connect(self.db_name) as conn:
                 cur = conn.cursor()
@@ -156,7 +156,7 @@ class Database:
                 if fetch:
                     return cur.fetchall()
 
-    def execute(self, sql, values=None, fetch=False):
+    def execute(self, sql: str, values = None, fetch: bool = False):
         with sqlite3.connect(self.db_name) as conn:
             cur = conn.cursor()
             if values is None:
@@ -167,31 +167,31 @@ class Database:
             if fetch:
                 return cur.fetchall()
     
-    def get_suffix(self, character):
+    def get_suffix(self, character: str):
         if character.lower() in (string.ascii_lowercase):
             return character.upper()
         return "_"
 
-    def add_whisper_ignore(self, username):
+    def add_whisper_ignore(self, username: str):
         self.execute("INSERT OR IGNORE INTO WhisperIgnore(username) SELECT ?", (username,))
     
-    def check_whisper_ignore(self, username):
+    def check_whisper_ignore(self, username: str):
         return self.execute("SELECT username FROM WhisperIgnore WHERE username = ?;", (username,), fetch=True)
 
-    def remove_whisper_ignore(self, username):
+    def remove_whisper_ignore(self, username: str):
         self.execute("DELETE FROM WhisperIgnore WHERE username = ?", (username,))
 
     def check_equal(self, l):
         # Check if a list contains of items that are all identical
         return not l or l.count(l[0]) == len(l)
 
-    def get_next(self, index, words):
+    def get_next(self, index: int, words):
         # Get all items
         data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(words[0][0])}{self.get_suffix(words[1][0])} WHERE word1 = ? AND word2 = ?;", words, fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else self.pick_word(data, index)
 
-    def get_next_initial(self, index, words):
+    def get_next_initial(self, index: int, words):
         # Get all items
         data = self.execute(f"SELECT word3, count FROM MarkovGrammar{self.get_suffix(words[0][0])}{self.get_suffix(words[1][0])} WHERE word1 = ? AND word2 = ? AND word3 != '<END>';", words, fetch=True)
         # Return a word picked from the data, using count as a weighting factor
@@ -205,19 +205,19 @@ class Database:
         return None if len(data) == 0 else [word] + [self.pick_word(data, index)]
     """
     
-    def get_next_single_initial(self, index, word):
+    def get_next_single_initial(self, index: int, word: str):
         # Get all items
         data = self.execute(f"SELECT word2, count FROM MarkovGrammar{self.get_suffix(word[0])}{random.choices(string.ascii_uppercase + '_', weights=self.word_frequency)[0]} WHERE word1 = ? AND word2 != '<END>';", (word,), fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else [word] + [self.pick_word(data, index)]
 
-    def get_next_single_start(self, word):
+    def get_next_single_start(self, word: str):
         # Get all items
         data = self.execute(f"SELECT word2, count FROM MarkovStart{self.get_suffix(word[0])} WHERE word1 = ?;", (word,), fetch=True)
         # Return a word picked from the data, using count as a weighting factor
         return None if len(data) == 0 else [word] + [self.pick_word(data)]
 
-    def pick_word(self, data, index=0):
+    def pick_word(self, data, index: int = 0):
         # Pick a random starting key from a weighted list
         # Note that the <END> values are weighted based on index.
         return random.choices(data, weights=[tup[1] * ((index+1)/15) if tup[0] == "<END>" else tup[1] for tup in data])[0][0]
@@ -251,7 +251,7 @@ class Database:
     def add_start_queue(self, item):
         self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(item[0][0])} (word1, word2, count) VALUES (?, ?, coalesce((SELECT count + 1 FROM MarkovStart{self.get_suffix(item[0][0])} WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY), 1))', values=item + item)
     
-    def unlearn(self, message):
+    def unlearn(self, message: str):
         words = message.split(" ")
         tuples = [(words[i], words[i+1], words[i+2]) for i in range(0, len(words) - 2)]
         # Unlearn start of sentence from MarkovStart
