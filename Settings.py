@@ -29,7 +29,7 @@ class Settings:
     
     PATH = os.path.join(os.getcwd(), "settings.json")
     
-    DEFAULTS = {
+    DEFAULTS: SettingsData = {
         "Host": "irc.chat.twitch.tv",
         "Port": 6667,
         "Channel": "#<channel>",
@@ -47,12 +47,29 @@ class Settings:
         "EnableGenerateCommand": True
     }
 
-    def __init__(self, bot):
+    def __init__(self, bot) -> None:
+        """Initialize the MarkovChain bot instance with the contents of the settings file
+
+        Args:
+            bot (MarkovChain): The MarkovChain bot instance.
+        """
         settings = Settings.read_settings()
         bot.set_settings(settings)
     
     @staticmethod
-    def read_settings():
+    def read_settings() -> dict:
+        """Read the settings file and return the contents as a dict.
+
+        Updates the settings file from an old version, if needed.
+
+        Raises:
+            ValueError: Whenever the settings.json file is not valid JSON.
+            FileNotFoundError: Whenever the settings file was not found. 
+                Will generate a new default settings file.
+
+        Returns:
+            dict: The contents of the settings.json file.
+        """
         # Potentially update the settings structure used to the newest version
         Settings.update_v2()
 
@@ -62,8 +79,6 @@ class Settings:
             with open(Settings.PATH, "r") as f:
                 text_settings = f.read()
                 settings: SettingsData = json.loads(text_settings)
-                # "BannedWords" is only a key in the settings in older versions.
-                # We moved to a separate file for blacklisted words.
                 Settings.update_v1(settings)
 
                 return settings
@@ -77,8 +92,14 @@ class Settings:
             raise ValueError("Please fix your settings file that was just generated.")
 
     @staticmethod
-    def update_v1(settings: SettingsData):
-        """Update settings file to remove the BannedWords field, in favor for a blacklist.txt file."""
+    def update_v1(settings: SettingsData) -> None:
+        """Update settings file to remove the BannedWords field, in favor for a blacklist.txt file.
+
+        Args:
+            settings (SettingsData): [description]
+        """
+        # "BannedWords" is only a key in the settings in older versions.
+        # We moved to a separate file for blacklisted words.
         if "BannedWords" in settings:
             logger.info("Updating Blacklist system to new version...")
             try:
@@ -111,7 +132,7 @@ class Settings:
             logger.info("Updated Blacklist system to new version.")
 
     @staticmethod
-    def update_v2():
+    def update_v2() -> None:
         """Converts `settings.txt` to `settings.json`, and adds missing new fields."""
         try:
             # Try to load the old settings.txt file using json.
@@ -130,25 +151,39 @@ class Settings:
             logger.info("Updated Settings system to new version. See \"settings.json\" for new fields, and README.md for information on these fields.")
 
         except FileNotFoundError:
+            # If settings.txt does not exist, then we're not on an old version.
             pass
 
     @staticmethod
-    def write_default_settings_file():
-        # If the file is missing, create a standardised settings.json file
-        # With all parameters required.
+    def write_default_settings_file() -> None:
+        """Create a standardised settings file with default values."""
         with open(Settings.PATH, "w") as f:
             f.write(json.dumps(Settings.DEFAULTS, indent=4, separators=(",", ": ")))
 
     @staticmethod
-    def update_cooldown(cooldown: int):
+    def update_cooldown(cooldown: int) -> None:
+        """Update the "Cooldown" value in the settings file.
+
+        Args:
+            cooldown (int): The integer representing the amount of seconds of cooldown 
+                between outputted generations.
+        """
         with open(Settings.PATH, "r") as f:
             settings = f.read()
             data = json.loads(settings)
+
         data["Cooldown"] = cooldown
+
         with open(Settings.PATH, "w") as f:
             f.write(json.dumps(data, indent=4, separators=(",", ": ")))
 
-    @classmethod
-    def get_channel(cls):
+    @staticmethod
+    def get_channel() -> str:
+        """Get the "Channel" value from the settings file.
+
+        Returns:
+            str: The name of the Channel described in the settings file. 
+                Stripped of "#" and converted to lowercase.
+        """
         settings = Settings.read_settings()
         return settings["Channel"].replace("#", "").lower()

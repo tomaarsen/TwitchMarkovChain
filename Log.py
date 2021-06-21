@@ -5,7 +5,7 @@ import logging.config
 
 
 class Log():
-    def __init__(self, logger: logging.Logger, main_file: str):
+    def __init__(self, main_file: str):
         # Dynamically change size set up for name in the logger
         this_file = os.path.basename(main_file)
 

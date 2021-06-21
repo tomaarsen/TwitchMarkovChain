@@ -9,6 +9,9 @@ from Settings import Settings, SettingsData
 from Database import Database
 from Timer import LoopingTimer
 
+from Log import Log
+Log(__file__)
+
 logger = logging.getLogger(__name__)
 
 class MarkovChain:
@@ -51,22 +54,27 @@ class MarkovChain:
                                   live=True)
         self.ws.start_bot()
 
-    def set_settings(self, data: SettingsData):
-        self.host = data["Host"]
-        self.port = data["Port"]
-        self.chan = data["Channel"]
-        self.nick = data["Nickname"]
-        self.auth = data["Authentication"]
-        self.denied_users = [user.lower() for user in data["DeniedUsers"]] + [self.nick.lower()]
-        self.allowed_users = [user.lower() for user in data["AllowedUsers"]]
-        self.cooldown = data["Cooldown"]
-        self.key_length = data["KeyLength"]
-        self.max_sentence_length = data["MaxSentenceWordAmount"]
-        self.min_sentence_length = data["MinSentenceWordAmount"]
-        self.help_message_timer = data["HelpMessageTimer"]
-        self.automatic_generation_timer = data["AutomaticGenerationTimer"]
-        self.whisper_cooldown = data["WhisperCooldown"]
-        self.enable_generate_command = data["EnableGenerateCommand"]
+    def set_settings(self, settings: SettingsData):
+        """Fill class instance attributes based on the settings file.
+
+        Args:
+            settings (SettingsData): The settings dict with information from the settings file.
+        """
+        self.host = settings["Host"]
+        self.port = settings["Port"]
+        self.chan = settings["Channel"]
+        self.nick = settings["Nickname"]
+        self.auth = settings["Authentication"]
+        self.denied_users = [user.lower() for user in settings["DeniedUsers"]] + [self.nick.lower()]
+        self.allowed_users = [user.lower() for user in settings["AllowedUsers"]]
+        self.cooldown = settings["Cooldown"]
+        self.key_length = settings["KeyLength"]
+        self.max_sentence_length = settings["MaxSentenceWordAmount"]
+        self.min_sentence_length = settings["MinSentenceWordAmount"]
+        self.help_message_timer = settings["HelpMessageTimer"]
+        self.automatic_generation_timer = settings["AutomaticGenerationTimer"]
+        self.whisper_cooldown = settings["WhisperCooldown"]
+        self.enable_generate_command = settings["EnableGenerateCommand"]
 
     def message_handler(self, m: Message):
         try:
@@ -293,7 +301,18 @@ class MarkovChain:
         except Exception as e:
             logger.exception(e)
             
-    def generate(self, params: List[str]) -> "Tuple[str, bool]":
+    def generate(self, params: List[str] = None) -> "Tuple[str, bool]":
+        """Given an input sentence, generate the remainder of the sentence using the learned data.
+
+        Args:
+            params (List[str]): A list of words to use as an input to use as the start of generating.
+        
+        Returns:
+            Tuple[str, bool]: A tuple of a sentence as the first value, and a boolean indicating
+                whether the generation succeeded as the second value.
+        """
+        if params is None:
+            params = []
 
         # Check for commands or recursion, eg: !generate !generate
         if len(params) > 0:
@@ -311,6 +330,7 @@ class MarkovChain:
         elif len(params) == 1:
             # First we try to find if this word was once used as the first word in a sentence:
             key = self.db.get_next_single_start(params[0])
+            print(key)
             if key == None:
                 # If this failed, we try to find the next word in the grammar as a whole
                 key = self.db.get_next_single_initial(0, params[0])
@@ -362,7 +382,15 @@ class MarkovChain:
 
         return " ".join(sentence), True
 
-    def extract_modifiers(self, emotes: str) -> list:
+    def extract_modifiers(self, emotes: str) -> List[str]:
+        """Extract emote modifiers from emotes, such as the the horizontal flip.
+
+        Args:
+            emotes (str): String containing all emotes used in the message.
+        
+        Returns:
+            List[str]: List of strings that show modifiers, such as "_HZ" for horizontal flip.
+        """
         output = []
         try:
             while emotes:
@@ -375,12 +403,18 @@ class MarkovChain:
         return output
 
     def write_blacklist(self, blacklist: List[str]) -> None:
+        """Write blacklist.txt given a list of banned words.
+
+        Args:
+            blacklist (List[str]): The list of banned words to write.
+        """
         logger.debug("Writing Blacklist...")
         with open("blacklist.txt", "w") as f:
             f.write("\n".join(sorted(blacklist, key=lambda x: len(x), reverse=True)))
         logger.debug("Written Blacklist.")
 
     def set_blacklist(self) -> None:
+        """Read blacklist.txt and set `self.blacklist` to the list of banned words."""
         logger.debug("Loading Blacklist...")
         try:
             with open("blacklist.txt", "r") as f:
@@ -393,7 +427,7 @@ class MarkovChain:
             self.write_blacklist(self.blacklist)
 
     def send_help_message(self) -> None:
-        # Send a Help message to the connected chat, as long as the bot wasn't disabled
+        """Send a Help message to the connected chat, as long as the bot wasn't disabled."""
         if self._enabled:
             logger.info("Help message sent.")
             try:
@@ -402,11 +436,12 @@ class MarkovChain:
                 logger.warning(f"[OSError: {error}] upon sending help message. Ignoring.")
 
     def send_automatic_generation_message(self) -> None:
-        # Send an automatic generation message to the connected chat, 
-        # as long as the bot wasn't disabled, just like if someone
-        # typed "!g" in chat.
+        """Send an automatic generation message to the connected chat.
+        
+        As long as the bot wasn't disabled, just like if someone typed "!g" in chat.
+        """
         if self._enabled:
-            sentence, success = self.generate([])
+            sentence, success = self.generate()
             if success:
                 logger.info(sentence)
                 # Try to send a message. Just log a warning on fail
@@ -417,28 +452,62 @@ class MarkovChain:
             else:
                 logger.info("Attempted to output automatic generation message, but there is not enough learned information yet.")
 
-    def send_whisper(self, user: str, message: str):
+    def send_whisper(self, user: str, message: str) -> None:
+        """Optionally send a whisper, only if "WhisperCooldown" is True.
+        
+        Args:
+            user (str): The user to potentially whisper.
+            message (str): The message to potentially whisper
+        """
         if self.whisper_cooldown:
             self.ws.send_whisper(user, message)
-        return
 
     def check_filter(self, message: str) -> bool:
-        # Returns True if message contains a banned word.
+        """Returns True if message contains a banned word.
+        
+        Args:
+            message (str): The message to check.
+        """
         for word in message.translate(self.punct_trans_table).lower().split():
             if word in self.blacklist:
                 return True
         return False
 
     def check_if_our_command(self, message: str, *commands: "Tuple[str]") -> bool:
-        # True if the first "word" of the message is either exactly command, or in the tuple of commands
+        """True if the first "word" of the message is in the tuple of commands
+
+        Args:
+            message (str): The message to check for a command.
+            commands (Tuple[str]): A tuple of commands.
+
+        Returns:
+            bool: True if the first word in message is one of the commands.
+        """
         return message.split()[0] in commands
 
     def check_if_generate(self, message: str) -> bool:
-        # True if the first "word" of the message is either !generate or !g.
+        """True if the first "word" of the message is either !generate or !g.
+
+        Args:
+            message (str): The message to check for !generate or !g.
+        
+        Returns:
+            bool: True if the first word in message is !generate or !g.
+        """
         return self.check_if_our_command(message, "!generate", "!g")
     
     def check_if_other_command(self, message: str) -> bool:
-        # Don't store commands, except /me
+        """True if the message is any command, except /me. 
+
+        Is used to avoid learning and generating commands.
+
+        Args:
+            message (str): The message to check.
+
+        Returns:
+            bool: True if the message is any potential command (starts with a '!', '/' or '.')
+                with the exception of /me.
+        """
         return message.startswith(("!", "/", ".")) and not message.startswith("/me")
     
     def check_if_permissions(self, m: Message) -> bool:
@@ -446,14 +515,23 @@ class MarkovChain:
         
         E.g. permissions to bypass cooldowns, update settings, disable the bot, etc.
         True for the streamer themselves, and the users set as the allowed users.
+
+        Args:
+            m (Message): The Message object that was sent from Twitch. 
+                Has `user` and `channel` attributes.
         """
         return m.user == m.channel or m.user in self.allowed_users
 
     def check_link(self, message: str) -> bool:
-        # True if message contains a link
+        """True if `message` contains a link.
+
+        Args:
+            message (str): The message to check for a link.
+
+        Returns:
+            bool: True if the message contains a link.
+        """
         return self.link_regex.search(message)
 
 if __name__ == "__main__":
-    from Log import Log
-    Log(logger, __file__)
     MarkovChain()
