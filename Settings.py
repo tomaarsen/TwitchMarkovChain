@@ -1,5 +1,9 @@
 import json, os, logging
-from typing import List, TypedDict
+from typing import List
+try:
+    from typing import TypedDict
+except ImportError:
+    TypedDict = object
 
 logger = logging.getLogger(__name__)
 
