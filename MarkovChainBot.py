@@ -8,6 +8,7 @@ import socket, time, logging, re, string
 from Settings import Settings, SettingsData
 from Database import Database
 from Timer import LoopingTimer
+from Tokenizer import detokenize, tokenize
 
 from Log import Log
 Log(__file__)
@@ -20,8 +21,6 @@ class MarkovChain:
         self._enabled = True
         # This regex should detect similar phrases as links as Twitch does
         self.link_regex = re.compile("\w+\.[a-z]{2,}")
-        # Make a translation table for removing punctuation efficiently
-        self.punct_trans_table = str.maketrans("", "", string.punctuation)
         # List of moderators used in blacklist modification, includes broadcaster
         self.mod_list = []
         self.set_blacklist()
@@ -75,6 +74,7 @@ class MarkovChain:
         self.automatic_generation_timer = settings["AutomaticGenerationTimer"]
         self.whisper_cooldown = settings["WhisperCooldown"]
         self.enable_generate_command = settings["EnableGenerateCommand"]
+        self.sent_separator = settings["SentenceSeparator"]
 
     def message_handler(self, m: Message):
         try:
@@ -148,7 +148,7 @@ class MarkovChain:
                         if self.check_filter(m.message):
                             sentence = "You can't make me say that, you madman!"
                         else:
-                            params = m.message.split(" ")[1:]
+                            params = tokenize(m.message)[2:]
                             # Generate an actual sentence
                             sentence, success = self.generate(params)
                             if success:
@@ -300,7 +300,7 @@ class MarkovChain:
 
         except Exception as e:
             logger.exception(e)
-            
+
     def generate(self, params: List[str] = None) -> "Tuple[str, bool]":
         """Given an input sentence, generate the remainder of the sentence using the learned data.
 
@@ -314,6 +314,10 @@ class MarkovChain:
         if params is None:
             params = []
 
+        # List of sentences that will be generated. In some cases, multiple sentences will be generated,
+        # e.g. when the first sentence has less words than self.min_sentence_length.
+        sentences = [[]]
+
         # Check for commands or recursion, eg: !generate !generate
         if len(params) > 0:
             if self.check_if_other_command(params[0]):
@@ -325,12 +329,11 @@ class MarkovChain:
         if len(params) > 1:
             key = params[-self.key_length:]
             # Copy the entire params for the sentence
-            sentence = params.copy()
+            sentences[0] = params.copy()
 
         elif len(params) == 1:
             # First we try to find if this word was once used as the first word in a sentence:
             key = self.db.get_next_single_start(params[0])
-            print(key)
             if key == None:
                 # If this failed, we try to find the next word in the grammar as a whole
                 key = self.db.get_next_single_initial(0, params[0])
@@ -338,49 +341,77 @@ class MarkovChain:
                     # Return a message that this word hasn't been learned yet
                     return f"I haven't extracted \"{params[0]}\" from chat yet.", False
             # Copy this for the sentence
-            sentence = key.copy()
+            sentences[0] = key.copy()
 
         else: # if there are no params
             # Get starting key
             key = self.db.get_start()
             if key:
                 # Copy this for the sentence
-                sentence = key.copy()
+                sentences[0] = key.copy()
             else:
                 # If nothing's ever been said
                 return "There is not enough learned information yet.", False
         
-        for i in range(self.max_sentence_length - self.key_length):
+        # Counter to prevent infinite loops (i.e. constantly generating <END> while below the 
+        # minimum number of words to generate)
+        i = 0
+        while self.sentence_length(sentences) < self.max_sentence_length and i < self.max_sentence_length * 2:
             # Use key to get next word
             if i == 0:
-                # Prevent fetching <END> on the first go
+                # Prevent fetching <END> on the first word
                 word = self.db.get_next_initial(i, key)
             else:
                 word = self.db.get_next(i, key)
 
+            i += 1
+
             if word == "<END>" or word == None:
+                # Break, unless we are before the min_sentence_length
                 if i < self.min_sentence_length:
                     key = self.db.get_start()
-                    for entry in key:
-                        sentence.append(entry)
-                    word = self.db.get_next_initial(i, key)
-                else:
-                    break
+                    # Ensure that the key can be generated. Otherwise we still stop.
+                    if key:
+                        # Start a new sentence
+                        sentences.append([])
+                        for entry in key:
+                            sentences[-1].append(entry)
+                        continue
+                break
 
             # Otherwise add the word
-            sentence.append(word)
+            sentences[-1].append(word)
             
-            # Modify the key so on the next iteration it gets the next item
+            # Shift the key so on the next iteration it gets the next item
             key.pop(0)
             key.append(word)
         
         # If there were params, but the sentence resulting is identical to the params
         # Then the params did not result in an actual sentence
         # If so, restart without params
-        if len(params) > 0 and params == sentence:
-            return "I haven't yet learned what to do with \"" + " ".join(params[-self.key_length:]) + "\"", False
+        if len(params) > 0 and params == sentences[0]:
+            return "I haven't yet learned what to do with \"" + detokenize(params[-self.key_length:]) + "\"", False
 
-        return " ".join(sentence), True
+        return self.sent_separator.join(detokenize(sentence) for sentence in sentences), True
+
+    def sentence_length(self, sentences: List[List[str]]) -> int:
+        """Given a list of tokens representing a sentence, return the number of words in there.
+
+        Args:
+            sentences (List[List[str]]): List of lists of tokens that make up a sentence,
+                where a token is a word or punctuation. For example:
+                [['Hello', ',', 'you', "'re", 'Tom', '!'], ['Yes', ',', 'I', 'am', '.']]
+                This would return 6.
+
+        Returns:
+            int: The number of words in the sentence.
+        """
+        count = 0
+        for sentence in sentences:
+            for token in sentence:
+                if token not in string.punctuation and token[0] != "'":
+                    count += 1
+        return count
 
     def extract_modifiers(self, emotes: str) -> List[str]:
         """Extract emote modifiers from emotes, such as the the horizontal flip.
@@ -468,8 +499,8 @@ class MarkovChain:
         Args:
             message (str): The message to check.
         """
-        for word in message.translate(self.punct_trans_table).lower().split():
-            if word in self.blacklist:
+        for word in tokenize(message):
+            if word.lower() in self.blacklist:
                 return True
         return False
 

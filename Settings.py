@@ -23,6 +23,7 @@ class SettingsData(TypedDict):
     AutomaticGenerationTimer: int
     WhisperCooldown: bool
     EnableGenerateCommand: bool
+    SentenceSeparator: str
 
 class Settings:
     """ Loads data from settings.json into the bot """
@@ -44,7 +45,8 @@ class Settings:
         "HelpMessageTimer": 60 * 60 * 5, # 18000 seconds, 5 hours
         "AutomaticGenerationTimer": -1,
         "WhisperCooldown": True,
-        "EnableGenerateCommand": True
+        "EnableGenerateCommand": True,
+        "SentenceSeparator": " - ",
     }
 
     def __init__(self, bot) -> None:
