@@ -282,6 +282,13 @@ This repository can be seen as an implementation using this wrapper.
 
 ---
 
+### Contributors
+My gratitude is extended to the following contributors who've decided to help out.
+* [@DoctorInsano](https://github.com/DoctorInsano) - Several small fixes and improvements in [v1.0](https://github.com/tomaarsen/TwitchMarkovChain/releases/tag/v1.0).
+* [@justinrusso](https://github.com/justinrusso) - Several features, refactors and fixes, that represent the core of v2.0.
+
+---
+
 ## Other Twitch Bots
 
 - [TwitchAIDungeon](https://github.com/CubieDev/TwitchAIDungeon)
