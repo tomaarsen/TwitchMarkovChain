@@ -85,6 +85,18 @@ class Settings:
                 settings: SettingsData = json.loads(text_settings)
                 Settings.update_v1(settings)
 
+                # Check if any settings keys are missing, and if so, write the defaults
+                # to the settings.json
+                if settings.keys() != Settings.DEFAULTS.keys():
+                    missing_keys = set(Settings.DEFAULTS.keys()) - set(settings.keys())
+                    # Log the missing keys
+                    logger.info(f"The following keys were missing from {Settings.PATH}: {', '.join(map(repr, missing_keys))}.")
+                    logger.info(f"These defaults of these values were used, and added to {Settings.PATH}. Default behaviour will not change.")
+
+                    # Add missing defaults
+                    settings = {**Settings.DEFAULTS, **settings}
+                    Settings.write_settings_file(settings)
+
                 return settings
 
         except ValueError:
@@ -161,8 +173,12 @@ class Settings:
     @staticmethod
     def write_default_settings_file() -> None:
         """Create a standardised settings file with default values."""
+        Settings.write_settings_file(Settings.DEFAULTS)
+
+    @staticmethod
+    def write_settings_file(settings: SettingsData) -> None:
         with open(Settings.PATH, "w") as f:
-            f.write(json.dumps(Settings.DEFAULTS, indent=4, separators=(",", ": ")))
+            f.write(json.dumps(settings, indent=4, separators=(",", ": ")))
 
     @staticmethod
     def update_cooldown(cooldown: int) -> None:
