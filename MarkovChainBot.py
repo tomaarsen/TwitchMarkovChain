@@ -76,6 +76,7 @@ class MarkovChain:
         self.enable_generate_command = settings["EnableGenerateCommand"]
         self.sent_separator = settings["SentenceSeparator"]
         self.allow_generate_params = settings["AllowGenerateParams"]
+        self.generate_commands = tuple(settings["GenerateCommands"])
 
     def message_handler(self, m: Message):
         try:
@@ -518,15 +519,15 @@ class MarkovChain:
         return message.split()[0] in commands
 
     def check_if_generate(self, message: str) -> bool:
-        """True if the first "word" of the message is either !generate or !g.
+        """True if the first "word" of the message is one of the defined generate commands.
 
         Args:
-            message (str): The message to check for !generate or !g.
+            message (str): The message to check for the generate command (i.e !generate or !g).
         
         Returns:
-            bool: True if the first word in message is !generate or !g.
+            bool: True if the first word in message is a generate command.
         """
-        return self.check_if_our_command(message, "!generate", "!g")
+        return self.check_if_our_command(message, *self.generate_commands)
     
     def check_if_other_command(self, message: str) -> bool:
         """True if the message is any command, except /me. 
