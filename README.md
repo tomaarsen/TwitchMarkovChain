@@ -6,7 +6,7 @@ Twitch Bot for generating messages based on what it learned from chat
 
 ## Explanation
 
-When the bot has started, it will start listening to chat messages in the channel listed in the `settings.txt` file. Any chat message not sent by a denied user will be learned from. Whenever someone then requests a message to be generated, a [Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) will be used with the learned data to generate a sentence. **Note that the bot is unaware of the meaning of any of its inputs and outputs. This means it can use bad language if it was taught to use bad language by people in chat. You can add a list of banned words it should never learn or say. Use at your own risk.**
+When the bot has started, it will start listening to chat messages in the channel listed in the `settings.json` file. Any chat message not sent by a denied user will be learned from. Whenever someone then requests a message to be generated, a [Markov Chain](https://en.wikipedia.org/wiki/Markov_chain) will be used with the learned data to generate a sentence. **Note that the bot is unaware of the meaning of any of its inputs and outputs. This means it can use bad language if it was taught to use bad language by people in chat. You can add a list of banned words it should never learn or say. Use at your own risk.**
 
 Whenever a message is deleted from chat, it's contents will be unlearned at 5 times the rate a normal message is learned from.
 The bot will avoid learning from commands, or from messages containing links.
@@ -215,7 +215,7 @@ And to check whether `word` is already on the blacklist or not, a moderator can 
 
 ## Settings
 
-This bot is controlled by a `settings.txt` file, which has the following structure:
+This bot is controlled by a `settings.json` file, which has the following structure:
 
 ```json
 {
@@ -225,31 +225,37 @@ This bot is controlled by a `settings.txt` file, which has the following structu
   "Nickname": "<name>",
   "Authentication": "oauth:<auth>",
   "DeniedUsers": ["StreamElements", "Nightbot", "Moobot", "Marbiebot"],
+  "AllowedUsers": [],
   "Cooldown": 20,
   "KeyLength": 2,
   "MaxSentenceWordAmount": 25,
-  "HelpMessageTimer": 7200,
-  "AutomaticGenerationTimer": -1
+  "MinSentenceWordAmount": -1,
+  "HelpMessageTimer": 18000,
+  "AutomaticGenerationTimer": -1,
+  "WhisperCooldown": true,
+  "EnableGenerateCommand": true,
+  "SentenceSeparator": " - ",
 }
 ```
 
-| **Parameter**            | **Meaning**                                                                                                                                                                                                                                  | **Example**                                           |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Host                     | The URL that will be used. Do not change.                                                                                                                                                                                                    | "irc.chat.twitch.tv"                                  |
-| Port                     | The Port that will be used. Do not change.                                                                                                                                                                                                   | 6667                                                  |
-| Channel                  | The Channel that will be connected to.                                                                                                                                                                                                       | "#CubieDev"                                           |
-| Nickname                 | The Username of the bot account.                                                                                                                                                                                                             | "CubieB0T"                                            |
-| Authentication           | The OAuth token for the bot account.                                                                                                                                                                                                         | "oauth:pivogip8ybletucqdz4pkhag6itbax"                |
-| DeniedUsers              | The list of bot account who's messages should not be learned from. The bot itself it automatically added to this.                                                                                                                            | ["StreamElements", "Nightbot", "Moobot", "Marbiebot"] |
-| Cooldown                 | A cooldown in seconds between successful generations. If a generation fails (eg inputs it can't work with), then the cooldown is not reset and another generation can be done immediately.                                                   | 20                                                    |
-| KeyLength                | A technical parameter which, in my previous implementation, would affect how closely the output matches the learned inputs. In the current implementation the database structure does not allow this parameter to be changed. Do not change. | 2                                                     |
-| MaxSentenceWordAmount    | The maximum number of words that can be generated. Prevents absurdly long and spammy generations.                                                                                                                                            | 25                                                    |
-| MinSentenceWordAmount    | The minimum number of words that can be generated. Additional sentences will begin a message is lower than this number. Prevents very small messages. -1 to disable                                                                          | -1                                                    |
-| HelpMessageTimer         | The amount of seconds between sending help messages that links to [How it works](#how-it-works). -1 for no help messages.                                                                                                                    | 7200                                                  |
-| AutomaticGenerationTimer | The amount of seconds between sending a generation, as if someone wrote `!g`. -1 for no automatic generations.                                                                                                                               | -1                                                    |
-| BotOwner                 | The owner of the bot's twitch username. Gives the owner the same power as the channel owner                                                                                                                                                  | "TestUser"                                            |
-| ShouldWhisper            | Prevents the bot from attempting to whisper users                                                                                                                                                                                            | true                                                  |
-| EnableGenerateCommand    | Globally enables/disables the generate command                                                                                                                                                                                               | true                                                  |
+| **Parameter**              | **Meaning**                                                                                                                                                                                                                                  | **Example**                                             |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `Host`                     | The URL that will be used. Do not change.                                                                                                                                                                                                    | `"irc.chat.twitch.tv"`                                  |
+| `Port`                     | The Port that will be used. Do not change.                                                                                                                                                                                                   | `6667`                                                  |
+| `Channel`                  | The Channel that will be connected to.                                                                                                                                                                                                       | `"#CubieDev"`                                           |
+| `Nickname`                 | The Username of the bot account.                                                                                                                                                                                                             | `"CubieB0T"`                                            |
+| `Authentication`           | The OAuth token for the bot account.                                                                                                                                                                                                         | `"oauth:pivogip8ybletucqdz4pkhag6itbax"`                |
+| `DeniedUsers`              | The list of (bot) accounts whose messages should not be learned from. The bot itself it automatically added to this.                                                                                                                         | `["StreamElements", "Nightbot", "Moobot", "Marbiebot"]` |
+| `AllowedUsers`             | A list of users with heightened permissions. Gives these users the same power as the channel owner, allowing them to bypass cooldowns, set cooldowns, disable or enable the bot, etc.                                                        | `["Michelle", "Cubie"]`                                 |
+| `Cooldown`                 | A cooldown in seconds between successful generations. If a generation fails (eg inputs it can't work with), then the cooldown is not reset and another generation can be done immediately.                                                   | `20`                                                    |
+| `KeyLength`                | A technical parameter which, in my previous implementation, would affect how closely the output matches the learned inputs. In the current implementation the database structure does not allow this parameter to be changed. Do not change. | `2`                                                     |
+| `MaxSentenceWordAmount`    | The maximum number of words that can be generated. Prevents absurdly long and spammy generations.                                                                                                                                            | `25`                                                    |
+| `MinSentenceWordAmount`    | The minimum number of words that can be generated. Might generate multiple sentences, separated by the value from `SentenceSeparator`. Prevents very short generations. -1 to disable.                                                       | `-1`                                                    |
+| `HelpMessageTimer`         | The amount of seconds between sending help messages that links to [How it works](#how-it-works). -1 for no help messages. Defaults to once every 5 hours.                                                                                    | `18000`                                                 |
+| `AutomaticGenerationTimer` | The amount of seconds between automatically sending a generated message, as if someone wrote `!g`. -1 for no automatic generations.                                                                                                          | `-1`                                                    |
+| `WhisperCooldown`          | Allows the bot to whisper a user the remaining cooldown after that user has attempted to generate a message.                                                                                                                                 | `true`                                                  |
+| `EnableGenerateCommand`    | Globally enables/disables the generate command.                                                                                                                                                                                              | `true`                                                  |
+| `SentenceSeparator`        | The separator between multiple sentences. Only relevant if `MinSentenceWordAmount` > 0, as only then can multiple sentences be generated. Sensible values for this might be `", "`, `". "`, `" - "` or `" "`.                                | `" - "`                                                 | 
 
 _Note that the example OAuth token is not an actual token, but merely a generated string to give an indication what it might look like._
 
@@ -273,6 +279,13 @@ Words can also be added or removed from the blacklist via whispers, as is descri
 
 Among these modules is my own [TwitchWebsocket](https://github.com/tomaarsen/TwitchWebsocket) wrapper, which makes making a Twitch chat bot a lot easier.
 This repository can be seen as an implementation using this wrapper.
+
+---
+
+### Contributors
+My gratitude is extended to the following contributors who've decided to help out.
+* [@DoctorInsano](https://github.com/DoctorInsano) - Several small fixes and improvements in [v1.0](https://github.com/tomaarsen/TwitchMarkovChain/releases/tag/v1.0).
+* [@justinrusso](https://github.com/justinrusso) - Several features, refactors and fixes, that represent the core of [v2.0](https://github.com/tomaarsen/TwitchMarkovChain/releases/tag/v2.0).
 
 ---
 
