@@ -340,7 +340,17 @@ class Database:
                     # In case there was some issue in the previous Database 
                     if len(two_gram) < 2:
                         continue
-                    self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(two_gram[0][0])}_modified (word1, word2, count) VALUES (?, ?, coalesce((SELECT count + {count} FROM MarkovStart{self.get_suffix(two_gram[0][0])}_modified WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY), 1))',
+                    self.add_execute_queue(f'''
+                        INSERT OR REPLACE INTO MarkovStart{self.get_suffix(two_gram[0][0])}_modified (word1, word2, count)
+                        VALUES (?, ?, coalesce (
+                                (
+                                    SELECT count + {count} FROM MarkovStart{self.get_suffix(two_gram[0][0])}_modified
+                                    WHERE word1 = ? COLLATE BINARY
+                                    AND word2 = ? COLLATE BINARY
+                                ),
+                                1
+                            )
+                        )''',
                                            values=two_gram + two_gram,
                                            auto_commit=False)
 
@@ -376,7 +386,18 @@ class Database:
                         # Filter out recursive case.
                         if self.check_equal(ngram):
                             continue
-                        self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(ngram[0][0])}{self.get_suffix(ngram[1][0])}_modified (word1, word2, word3, count) VALUES (?, ?, ?, coalesce((SELECT count + {count} FROM MarkovGrammar{self.get_suffix(ngram[0][0])}{self.get_suffix(ngram[1][0])}_modified WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY AND word3 = ? COLLATE BINARY), 1))',
+                        self.add_execute_queue(f'''
+                        INSERT OR REPLACE INTO MarkovGrammar{self.get_suffix(ngram[0][0])}{self.get_suffix(ngram[1][0])}_modified (word1, word2, word3, count)
+                        VALUES (?, ?, ?, coalesce (
+                                (
+                                    SELECT count + {count} FROM MarkovGrammar{self.get_suffix(ngram[0][0])}{self.get_suffix(ngram[1][0])}_modified
+                                    WHERE word1 = ? COLLATE BINARY
+                                    AND word2 = ? COLLATE BINARY
+                                    AND word3 = ? COLLATE BINARY
+                                ),
+                                1
+                            )
+                        )''',
                                                values=ngram + ngram,
                                                auto_commit=False)
 
