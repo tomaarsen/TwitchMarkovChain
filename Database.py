@@ -337,11 +337,9 @@ class Database:
                     raw_string = " ".join(tup)
                     tokenized = tokenize(raw_string)
                     two_gram = tokenized[:2]
-                    # if "you're" in raw_string:
-                    # import pdb; pdb.set_trace()
-                    if len(two_gram) == 1:
-                        import pdb
-                        pdb.set_trace()
+                    # In case there was some issue in the previous Database 
+                    if len(two_gram) < 2:
+                        continue
                     self.add_execute_queue(f'INSERT OR REPLACE INTO MarkovStart{self.get_suffix(two_gram[0][0])}_modified (word1, word2, count) VALUES (?, ?, coalesce((SELECT count + {count} FROM MarkovStart{self.get_suffix(two_gram[0][0])}_modified WHERE word1 = ? COLLATE BINARY AND word2 = ? COLLATE BINARY), 1))',
                                            values=two_gram + two_gram,
                                            auto_commit=False)
