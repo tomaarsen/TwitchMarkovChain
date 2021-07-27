@@ -235,6 +235,8 @@ This bot is controlled by a `settings.json` file, which has the following struct
   "WhisperCooldown": true,
   "EnableGenerateCommand": true,
   "SentenceSeparator": " - ",
+  "AllowGenerateParams": True,
+  "GenerateCommands": ["!generate", "!g"]
 }
 ```
 
@@ -256,6 +258,8 @@ This bot is controlled by a `settings.json` file, which has the following struct
 | `WhisperCooldown`          | Allows the bot to whisper a user the remaining cooldown after that user has attempted to generate a message.                                                                                                                                 | `true`                                                  |
 | `EnableGenerateCommand`    | Globally enables/disables the generate command.                                                                                                                                                                                              | `true`                                                  |
 | `SentenceSeparator`        | The separator between multiple sentences. Only relevant if `MinSentenceWordAmount` > 0, as only then can multiple sentences be generated. Sensible values for this might be `", "`, `". "`, `" - "` or `" "`.                                | `" - "`                                                 | 
+| `AllowGenerateParams`      | Allow chat to supply a partial sentence which the bot finishes, e.g. `!generate hello, I am`. If `false`, all values after the generation command will be ignored.                                                                           | `true`                                                  |
+| `GenerateCommands`         | The generation commands that the bot will listen for. Defaults to `["!generate", "!g"]`. Useful if your chat is used to commands with `~`, `-`, `/`, etc.                                                                                    | `["!generate", "!g"]`                                   |
 
 _Note that the example OAuth token is not an actual token, but merely a generated string to give an indication what it might look like._
 
