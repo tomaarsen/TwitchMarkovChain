@@ -75,6 +75,7 @@ class MarkovChain:
         self.whisper_cooldown = settings["WhisperCooldown"]
         self.enable_generate_command = settings["EnableGenerateCommand"]
         self.sent_separator = settings["SentenceSeparator"]
+        self.allow_generate_params = settings["AllowGenerateParams"]
 
     def message_handler(self, m: Message):
         try:
@@ -148,7 +149,7 @@ class MarkovChain:
                         if self.check_filter(m.message):
                             sentence = "You can't make me say that, you madman!"
                         else:
-                            params = tokenize(m.message)[2:]
+                            params = tokenize(m.message)[2:] if self.allow_generate_params else None
                             # Generate an actual sentence
                             sentence, success = self.generate(params)
                             if success:
