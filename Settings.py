@@ -47,6 +47,8 @@ class Settings:
         "WhisperCooldown": True,
         "EnableGenerateCommand": True,
         "SentenceSeparator": " - ",
+        "AllowGenerateParams": True,
+        "GenerateCommands": ["!generate", "!g"]
     }
 
     def __init__(self, bot) -> None:
