@@ -18,5 +18,5 @@ class Log():
                                       disable_existing_loggers=False)
         else:
             # If you don't, use a standard config that outputs some INFO in the console
-            logging.basicConfig(
-                level=logging.INFO, format=f'[%(asctime)s] [%(name)s] [%(levelname)-8s] - %(message)s')
+            logging.basicConfig(level=logging.INFO,
+                                format=f'[%(asctime)s] [%(name)s] [%(levelname)-8s] - %(message)s')
