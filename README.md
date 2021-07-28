@@ -235,7 +235,7 @@ This bot is controlled by a `settings.json` file, which has the following struct
   "WhisperCooldown": true,
   "EnableGenerateCommand": true,
   "SentenceSeparator": " - ",
-  "AllowGenerateParams": True,
+  "AllowGenerateParams": true,
   "GenerateCommands": ["!generate", "!g"]
 }
 ```
