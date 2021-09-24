@@ -392,7 +392,7 @@ class MarkovChain:
         # Then the params did not result in an actual sentence
         # If so, restart without params
         if len(params) > 0 and params == sentences[0]:
-            return "I haven't yet learned what to do with \"" + detokenize(params[-self.key_length:]) + "\"", False
+            return "I haven't learned what to do with \"" + detokenize(params[-self.key_length:]) + "\" yet.", False
 
         return self.sent_separator.join(detokenize(sentence) for sentence in sentences), True
 
