@@ -3,6 +3,7 @@ import sqlite3
 import logging
 import random
 import string
+import os
 from typing import Any, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
@@ -90,10 +91,11 @@ class Database:
         self.db_name = f"MarkovChain_{channel.replace('#', '').lower()}.db"
         self._execute_queue = []
 
-        # Ensure the database is updated to the newest version
-        self.update_v1(channel)
-        self.update_v2()
-        self.update_v3(channel)
+        if os.path.isfile(self.db_name):
+            # Ensure the database is updated to the newest version
+            self.update_v1(channel)
+            self.update_v2()
+            self.update_v3(channel)
 
         # Create database tables.
         for first_char in list(string.ascii_uppercase) + ["_"]:
@@ -122,6 +124,15 @@ class Database:
         );
         """
         self.add_execute_queue(sql)
+        # Add a version entry
+        sql = """
+        CREATE TABLE IF NOT EXISTS Version (
+            version INTEGER
+        );
+        """
+        self.add_execute_queue(sql)
+        self.add_execute_queue("DELETE FROM Version;")
+        self.add_execute_queue("INSERT INTO Version (version) VALUES (3);")
         self.execute_commit()
 
         # Used for randomly picking a Markov Grammar if only one word is given
