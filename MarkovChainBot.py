@@ -176,12 +176,11 @@ class MarkovChain:
                 elif self.check_link(m.message):
                     return
 
-                if "emotes" in m.tags:
-                    # If the list of emotes contains "emotesv2_", then the message contains a bit emote, 
-                    # and we choose not to learn from those messages.
-                    if "emotesv2_" in m.tags["emotes"]:
-                        return
+                # Ignore messages that contain a bit emote
+                if "bits" in m.tags:
+                    return
 
+                if "emotes" in m.tags:
                     # Replace modified emotes with normal versions, 
                     # as the bot will never have the modified emotes unlocked at the time.
                     for modifier in self.extract_modifiers(m.tags["emotes"]):
