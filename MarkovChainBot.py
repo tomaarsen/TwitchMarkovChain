@@ -206,7 +206,7 @@ class MarkovChain:
 
                     for sentence in sentences:
                         # Get all seperate words
-                        words = sentence.split(" ")
+                        words = tokenize(sentence)
                         # Double spaces will lead to invalid rules. We remove empty words here
                         if "" in words:
                             words = [word for word in words if word]
