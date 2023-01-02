@@ -99,11 +99,12 @@ def detokenize(tokenized: List[str]) -> str:
     Returns:
         str: The correct string sentence, e.g. "Hello, I'm Tom"
     """
-    indices = [index for index, token in enumerate(tokenized) if token in ("''", "'")]
+    indices = [index for index, token in enumerate(tokenized) if token in ("''", "'", '"')]
+    # Replace '' with ", works better with more recent NLTK versions
+    tokenized_copy = [token if token != "''" else '"' for token in tokenized]
     # We get the reverse of the enumerate, as we modify the list we took the indices from
     enumerated = list(enumerate(indices))
 
-    tokenized_copy = deepcopy(tokenized)
     for i, index in enumerated[::-1]:
         # Opening quote
         if i % 2 == 0:
